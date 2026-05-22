@@ -251,6 +251,104 @@ class DatabaseHelper {
     return await db.delete('notes', where: 'id = ?', whereArgs: [id]);
   }
 
+  //---------------------transaction history and summary total ----------------
+  Future<double> getIncomeTotal() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT SUM(amount) as total FROM incomes');
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<double> getExpenseTotal() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT SUM(amount) as total FROM expenses');
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<double> getBorrowTotal() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT SUM(amount) as total FROM borrows');
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllTransactions() async {
+    final db = await database;
+
+    final incomes = await db.rawQuery('''
+    SELECT id, category as title, amount, date, description, 'income' as type
+    FROM incomes
+  ''');
+
+    final expenses = await db.rawQuery('''
+    SELECT id, name as title, amount, date, description, 'expense' as type
+    FROM expenses
+  ''');
+
+    final borrows = await db.rawQuery('''
+    SELECT id, name as title, amount, borrow_date as date, description, 'borrow' as type
+    FROM borrows
+  ''');
+
+    final transactions = [
+      ...incomes,
+      ...expenses,
+      ...borrows,
+    ];
+
+    transactions.sort((a, b) {
+      final dateA = DateTime.parse(a['date'] as String);
+      final dateB = DateTime.parse(b['date'] as String);
+      return dateB.compareTo(dateA);
+    });
+
+    return transactions;
+  }
+
+  Future<List<Map<String, dynamic>>> getTransactionsByTypeAndPeriod({
+    required String type,
+    required String period,
+  }) async {
+    final db = await database;
+
+    final now = DateTime.now();
+    late DateTime startDate;
+
+    if (period == 'Day') {
+      startDate = DateTime(now.year, now.month, now.day);
+    } else if (period == 'Week') {
+      startDate = now.subtract(Duration(days: now.weekday - 1));
+      startDate = DateTime(startDate.year, startDate.month, startDate.day);
+    } else if (period == 'Month') {
+      startDate = DateTime(now.year, now.month, 1);
+    } else {
+      startDate = DateTime(now.year, 1, 1);
+    }
+
+    final start = startDate.toIso8601String();
+
+    if (type == 'Income') {
+      return await db.rawQuery('''
+      SELECT id, category as title, amount, date, description, 'Income' as type
+      FROM incomes
+      WHERE date >= ?
+      ORDER BY amount DESC
+    ''', [start]);
+    } else if (type == 'Expense') {
+      return await db.rawQuery('''
+      SELECT id, name as title, amount, date, description, 'Expense' as type
+      FROM expenses
+      WHERE date >= ?
+      ORDER BY amount DESC
+    ''', [start]);
+    } else {
+      return await db.rawQuery('''
+      SELECT id, name as title, amount, borrow_date as date, description, 'Borrow' as type
+      FROM borrows
+      WHERE borrow_date >= ?
+      ORDER BY amount DESC
+    ''', [start]);
+    }
+  }
+
   // -------------------- Close DB --------------------
 
   Future<void> closeDatabase() async {
