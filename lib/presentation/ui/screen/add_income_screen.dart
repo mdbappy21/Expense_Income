@@ -1,3 +1,4 @@
+import 'package:expense_income/data/database_helper.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,6 +14,20 @@ class AddIncomeScreen extends StatefulWidget {
 class _AddIncomeScreenState extends State<AddIncomeScreen> {
   final GlobalKey<FormState>_formKey=GlobalKey<FormState>();
   DateTime? selectedDate;
+
+  final TextEditingController _categoryTEController = TextEditingController();
+  final TextEditingController _amountTEController = TextEditingController();
+  final TextEditingController _descriptionTEController = TextEditingController();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _categoryTEController.dispose();
+    _amountTEController.dispose();
+    _descriptionTEController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,17 +108,35 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           child: Column(
             children: [
               TextFormField(
-                decoration: InputDecoration(
+                controller: _categoryTEController,
+                decoration: const InputDecoration(
                   hintText: 'Salary',
-                  labelText: 'Category'
+                  labelText: 'Category',
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter category';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
-                decoration: InputDecoration(
+                controller: _amountTEController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
                   hintText: 'Amount',
-                  labelText: 'Amount'
+                  labelText: 'Amount',
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter amount';
+                  }
+                  if (double.tryParse(value.trim()) == null) {
+                    return 'Enter valid amount';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -116,20 +149,55 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                controller: _descriptionTEController,
                 maxLines: 2,
                 maxLength: 120,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Description',
                   labelText: 'Description',
                 ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: (){}, child: Text('Add'))
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveIncome,
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Add'),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _saveIncome() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (selectedDate == null) {
+      Get.snackbar('Error', 'Please select date');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await DatabaseHelper.instance.insertIncome(
+      category: _categoryTEController.text.trim(),
+      amount: double.parse(_amountTEController.text.trim()),
+      date: selectedDate!,
+      description: _descriptionTEController.text.trim(),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Get.snackbar('Success', 'Income added successfully');
+    Get.back();
   }
 
   Future<void> pickDate(BuildContext context) async {
