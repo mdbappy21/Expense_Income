@@ -1,4 +1,6 @@
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
+import 'package:expense_income/data/database_helper.dart';
+import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 class NoteAddTextScreen extends StatefulWidget {
@@ -9,16 +11,63 @@ class NoteAddTextScreen extends StatefulWidget {
 }
 
 class _NoteAddTextScreenState extends State<NoteAddTextScreen> {
+  final TextEditingController _titleTEController = TextEditingController();
+  final TextEditingController _noteTEController = TextEditingController();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _titleTEController.dispose();
+    _noteTEController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveTextNote() async {
+    final title = _titleTEController.text.trim();
+    final note = _noteTEController.text.trim();
+
+    if (title.isEmpty && note.isEmpty) {
+      Get.snackbar('Error', 'Please write something');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await DatabaseHelper.instance.insertTextNote(
+      title: title.isEmpty ? 'Untitled' : title,
+      content: note,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Get.snackbar('Success', 'Note saved');
+    Get.back();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.themeColor,
         centerTitle: true,
-        title: Text('Add Text'),
+        title: const Text('Add Text'),
         actions: [
-          IconButton(onPressed: (){}, icon:Icon(Icons.save)),
-          const SizedBox(width: 8)
+          IconButton(
+            onPressed: _isLoading ? null : _saveTextNote,
+            icon: _isLoading
+                ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+                : const Icon(Icons.save),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -28,31 +77,31 @@ class _NoteAddTextScreenState extends State<NoteAddTextScreen> {
             child: Column(
               children: [
                 TextField(
-                  decoration: InputDecoration(
+                  controller: _titleTEController,
+                  decoration: const InputDecoration(
                     hintText: 'Title',
                     enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide.none
+                      borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide.none
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                const SizedBox(
-                  height: 8,
-                ),
+                const SizedBox(height: 8),
                 TextField(
-                  maxLines:100,
-                  decoration: InputDecoration(
+                  controller: _noteTEController,
+                  maxLines: 100,
+                  decoration: const InputDecoration(
                     hintText: 'Note',
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide.none
+                      borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide.none
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),

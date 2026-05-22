@@ -1,5 +1,7 @@
+import 'package:expense_income/data/database_helper.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class NoteAddListScreen extends StatefulWidget {
   const NoteAddListScreen({super.key});
@@ -19,6 +21,8 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
     false,
   ];
 
+  bool _isLoading = false;
+
   void _addItem() {
     setState(() {
       _items.add(TextEditingController());
@@ -27,6 +31,14 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
   }
 
   void _removeItem(int index) {
+    if (_items.length == 1) {
+      _items[index].clear();
+      setState(() {
+        _checked[index] = false;
+      });
+      return;
+    }
+
     setState(() {
       _items[index].dispose();
       _items.removeAt(index);
@@ -34,12 +46,52 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
     });
   }
 
+  Future<void> _saveListNote() async {
+    final title = _titleController.text.trim();
+
+    final items = <Map<String, dynamic>>[];
+
+    for (int i = 0; i < _items.length; i++) {
+      final text = _items[i].text.trim();
+
+      if (text.isNotEmpty) {
+        items.add({
+          'text': text,
+          'is_checked': _checked[i],
+        });
+      }
+    }
+
+    if (title.isEmpty && items.isEmpty) {
+      Get.snackbar('Error', 'Please write something');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await DatabaseHelper.instance.insertListNote(
+      title: title.isEmpty ? 'Untitled' : title,
+      items: items,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Get.snackbar('Success', 'List note saved');
+    Get.back();
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
+
     for (final controller in _items) {
       controller.dispose();
     }
+
     super.dispose();
   }
 
@@ -47,11 +99,21 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor:AppColors.themeColor,
+        backgroundColor: AppColors.themeColor,
         title: const Text("Add List"),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: (){}, icon:Icon(Icons.save))
+          IconButton(
+            onPressed: _isLoading ? null : _saveListNote,
+            icon: _isLoading
+                ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+                : const Icon(Icons.save),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -71,9 +133,7 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Expanded(
                 child: ListView.builder(
                   itemCount: _items.length,
@@ -82,7 +142,6 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
                   },
                 ),
               ),
-
               _buildAddItemButton(),
             ],
           ),
@@ -93,7 +152,7 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
 
   Widget _buildListItem(int index) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Checkbox(
@@ -107,7 +166,6 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
               });
             },
           ),
-
           Expanded(
             child: TextField(
               controller: _items[index],
@@ -121,12 +179,9 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
               ),
             ),
           ),
-
           IconButton(
             onPressed: () => _removeItem(index),
-            icon: const Icon(
-              Icons.close,
-            ),
+            icon: const Icon(Icons.close),
           ),
         ],
       ),
@@ -138,8 +193,8 @@ class _NoteAddListScreenState extends State<NoteAddListScreen> {
       onTap: _addItem,
       child: Container(
         color: Colors.grey,
-        padding: EdgeInsets.all(8),
-        child: Row(
+        padding: const EdgeInsets.all(8),
+        child: const Row(
           children: [
             SizedBox(width: 12),
             Icon(Icons.add),
