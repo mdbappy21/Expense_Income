@@ -8,45 +8,43 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
-      body: SafeArea(
-        child:Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
+      body: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildTop(size),
+              _buildProfile(size),
+            ],
+          ),
+          SizedBox(height: size.height*.12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
               children: [
-                _buildTop(size),
-                _buildProfile(size),
+                ListTile(
+                  title: Text('Invite Friend'),
+                  leading: Icon(Icons.diamond,color: AppColors.themeColor,),
+                ),
+                Divider(),
+                ListTile(
+                  title: Text('Edit Profile'),
+                  leading: Icon(Icons.edit,color: AppColors.themeColor,),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: Text('Buy me a coffee'),
+                  leading: Icon(Icons.coffee,color: AppColors.themeColor,),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: Text('Logout'),
+                  leading: Icon(Icons.logout,color: AppColors.themeColor,),
+                ),
               ],
             ),
-            SizedBox(height: size.height*.12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  ListTile(
-                    title: Text('Invite Friend'),
-                    leading: Icon(Icons.diamond,color: AppColors.themeColor,),
-                  ),
-                  Divider(),
-                  ListTile(
-                    title: Text('Edit Profile'),
-                    leading: Icon(Icons.edit,color: AppColors.themeColor,),
-                  ),
-                  const SizedBox(height: 8),
-                  ListTile(
-                    title: Text('Buy me a coffee'),
-                    leading: Icon(Icons.coffee,color: AppColors.themeColor,),
-                  ),
-                  const SizedBox(height: 8),
-                  ListTile(
-                    title: Text('Logout'),
-                    leading: Icon(Icons.logout,color: AppColors.themeColor,),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

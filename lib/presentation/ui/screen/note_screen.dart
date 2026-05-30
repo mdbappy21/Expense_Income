@@ -1,30 +1,12 @@
-import 'package:expense_income/data/database_helper.dart';
+import 'package:expense_income/presentation/state_holders/note_controller.dart';
 import 'package:expense_income/presentation/ui/screen/note_add_list_screen.dart';
 import 'package:expense_income/presentation/ui/screen/note_add_text_screen.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class NoteScreen extends StatefulWidget {
+class NoteScreen extends StatelessWidget {
   const NoteScreen({super.key});
-
-  @override
-  State<NoteScreen> createState() => _NoteScreenState();
-}
-
-class _NoteScreenState extends State<NoteScreen> {
-  Future<List<Map<String, dynamic>>> _notesFuture = DatabaseHelper.instance.getNotes();
-
-  void _refreshNotes() {
-    setState(() {
-      _notesFuture = DatabaseHelper.instance.getNotes();
-    });
-  }
-
-  Future<void> _deleteNote(int id) async {
-    await DatabaseHelper.instance.deleteNote(id);
-    _refreshNotes();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,86 +17,103 @@ class _NoteScreenState extends State<NoteScreen> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _notesFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+        child: GetBuilder<NoteController>(
+          builder: (controller) {
+            if (controller.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
 
-            final notes = snapshot.data ?? [];
-
-            if (notes.isEmpty) {
-              return const Center(child: Text('No notes found'));
+            if (controller.notes.isEmpty) {
+              return const Center(
+                child: Text('No notes found'),
+              );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                final note = notes[index];
+            return RefreshIndicator(
+              onRefresh: controller.loadNotes,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: controller.notes.length,
+                itemBuilder: (context, index) {
+                  final note = controller.notes[index];
 
-                return GestureDetector(
-                  onTap: () {
-                    if (note['type'] == 'list') {
-                      Get.to(() => const NoteAddListScreen());
-                    } else {
-                      Get.to(() => const NoteAddTextScreen());
-                    }
-                  },
-                  child: Card(
-                    color: Colors.grey.shade200,
-                    elevation: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              note['title'] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                  return GestureDetector(
+                    onTap: () async {
+                      if (note['type'] == 'list') {
+                        await Get.to(
+                              () => NoteAddListScreen(
+                            noteId: note['id'],
                           ),
-                          IconButton(
-                            onPressed: () => _deleteNote(note['id']),
-                            icon: Icon(
-                              Icons.delete,
-                              color: Colors.red.shade300,
-                            ),
+                        );
+                      } else {
+                        await Get.to(
+                              () => NoteAddTextScreen(
+                            noteId: note['id'],
                           ),
-                        ],
+                        );
+                      }
+
+                      controller.loadNotes();
+                    },
+                    child: Card(
+                      color: Colors.grey.shade200,
+                      elevation: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                note['title'] ?? '',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () async {
+                                await controller.deleteNote(
+                                  note['id'],
+                                );
+                              },
+                              icon: Icon(
+                                Icons.delete,
+                                color: Colors.red.shade300,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'note_fab',
         shape: const CircleBorder(),
-        onPressed: () {
-          _onTapFAB(context);
-        },
         backgroundColor: Colors.teal,
-        child: const Icon(Icons.edit, color: Colors.white),
+        child: const Icon(
+          Icons.edit,
+          color: Colors.white,
+        ),
+        onPressed: () => _onTapFAB(context),
       ),
     );
   }
 
-  void _onTapFAB(BuildContext context) async {
+  Future<void> _onTapFAB(BuildContext context) async {
     final size = MediaQuery.of(context).size;
 
     final selected = await showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(
-        size.width,
-        size.height * .685,
-        0,
-        0,
-      ),
+      position: RelativeRect.fromLTRB(size.width, size.height * .685, 0, 0),
       color: Colors.grey.shade200,
       items: const [
         PopupMenuItem(
@@ -129,11 +128,23 @@ class _NoteScreenState extends State<NoteScreen> {
     );
 
     if (selected == 'list') {
-      await Get.to(() => const NoteAddListScreen());
-      _refreshNotes();
-    } else if (selected == 'text') {
-      await Get.to(() => const NoteAddTextScreen());
-      _refreshNotes();
+      final result = await Get.to(
+            () => const NoteAddListScreen(),
+      );
+
+      if (result == true) {
+        Get.find<NoteController>().loadNotes();
+      }
+    }
+
+    if (selected == 'text') {
+      final result = await Get.to(
+            () => const NoteAddTextScreen(),
+      );
+
+      if (result == true) {
+        Get.find<NoteController>().loadNotes();
+      }
     }
   }
 }

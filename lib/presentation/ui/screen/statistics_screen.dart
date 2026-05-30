@@ -27,9 +27,9 @@ class StatisticsScreen extends StatelessWidget {
                   _buildHeader(controller),
                   const SizedBox(height: 28),
                   _buildPeriodTabs(controller),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
                   _buildDropdown(controller),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   _buildChart(controller),
                   const SizedBox(height: 32),
                   _buildTopSection(controller),
@@ -102,7 +102,7 @@ class StatisticsScreen extends StatelessWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(8),
@@ -131,76 +131,120 @@ class StatisticsScreen extends StatelessWidget {
   Widget _buildChart(StatisticsController controller) {
     if (controller.chartSpots.isEmpty) {
       return const SizedBox(
-        height: 190,
-        child: Center(child: Text('No chart data')),
+        height: 260,
+        child: Center(
+          child: Text('No chart data'),
+        ),
       );
     }
 
-    final maxY = controller.chartSpots
-        .map((e) => e.y)
-        .reduce((a, b) => a > b ? a : b);
+    final highestY = controller.chartSpots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+
+    final chartWidth = (controller.chartSpots.length * 80.0).clamp(350.0, 5000.0);
+
+    final yPadding = highestY == 0 ? 10.0 : highestY * 0.25;
 
     return SizedBox(
-      height: 220,
-      child: LineChart(
-        LineChartData(
-          minX: 0,
-          maxX: controller.chartSpots.length > 1
-              ? controller.chartSpots.length - 1
-              : 1,
-          minY: 0,
-          maxY: maxY == 0 ? 10 : maxY + (maxY * .2),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 32,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
+      height: 260,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: chartWidth,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24),
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: controller.chartSpots.isEmpty ? 1 : controller.chartSpots.last.x + 0.05,
+                minY: 0,
+                maxY: highestY + yPadding,
 
-                  if (index < 0 || index >= controller.transactions.length) {
-                    return const SizedBox();
-                  }
+                gridData: const FlGridData(
+                  show: false,
+                ),
 
-                  final date = DateTime.parse(
-                    controller.transactions[index]['date'],
-                  );
+                borderData: FlBorderData(
+                  show: false
+                ),
 
-                  return Text(
-                    DateFormat('dd MMM').format(date),
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 11,
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: false,
                     ),
-                  );
-                },
+                  ),
+
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: false,
+                    ),
+                  ),
+
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 32,
+                      interval: highestY / 4,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 48,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.round();
+
+                        if (index < 0 || index >= controller.chartLabels.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        if (value != index.toDouble()) {
+                          return const SizedBox.shrink();
+                        }
+                        return SideTitleWidget(
+                          meta: meta,
+                          child: Text(
+                            controller.chartLabels[index],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 10,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: controller.chartSpots,
+                    isCurved: false,
+                    barWidth: 3,
+                    color: Colors.blue,
+                    dotData: const FlDotData(
+                      show: true,
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Colors.blue.withAlpha(32),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          lineBarsData: [
-            LineChartBarData(
-              spots: controller.chartSpots,
-              isCurved: true,
-              barWidth: 3,
-              color: Colors.blue,
-              dotData: const FlDotData(show: true),
-              belowBarData: BarAreaData(
-                show: true,
-                color: Colors.blue.withAlpha(30),
-              ),
-            ),
-          ],
         ),
       ),
     );

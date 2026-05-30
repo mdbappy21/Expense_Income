@@ -349,6 +349,79 @@ class DatabaseHelper {
     }
   }
 
+  Future<Map<String, dynamic>?> getNoteById(int id) async {
+    final db = await database;
+
+    final result = await db.query(
+      'notes',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return result.first;
+  }
+
+  Future<int> updateTextNote({
+    required int id,
+    required String title,
+    required String content,
+  }) async {
+    final db = await database;
+
+    return await db.update(
+      'notes',
+      {
+        'title': title,
+        'content': content,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> updateListNote({
+    required int noteId,
+    required String title,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final db = await database;
+
+    return await db.transaction((txn) async {
+      await txn.update(
+        'notes',
+        {
+          'title': title,
+        },
+        where: 'id = ?',
+        whereArgs: [noteId],
+      );
+
+      await txn.delete(
+        'note_items',
+        where: 'note_id = ?',
+        whereArgs: [noteId],
+      );
+
+      for (final item in items) {
+        await txn.insert(
+          'note_items',
+          {
+            'note_id': noteId,
+            'text': item['text'],
+            'is_checked': item['is_checked'] ? 1 : 0,
+          },
+        );
+      }
+
+      return noteId;
+    });
+  }
+
   // -------------------- Close DB --------------------
 
   Future<void> closeDatabase() async {

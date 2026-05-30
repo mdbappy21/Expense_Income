@@ -2,6 +2,7 @@ import 'package:expense_income/data/database_helper.dart';
 import 'package:expense_income/presentation/state_holders/statistics_pdf_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class StatisticsController extends GetxController {
   String selectedPeriod = 'Day';
@@ -11,6 +12,9 @@ class StatisticsController extends GetxController {
 
   List<Map<String, dynamic>> transactions = [];
   List<FlSpot> chartSpots = [];
+
+  List<String> chartLabels = [];
+
 
   final List<String> periods = ['Day', 'Week', 'Month', 'Year'];
   final List<String> types = ['Expense', 'Income', 'Borrow'];
@@ -49,7 +53,6 @@ class StatisticsController extends GetxController {
 
       _generateChartSpots();
     } catch (e) {
-      print('Statistics load error: $e');
       Get.snackbar('Error', e.toString());
     } finally {
       isLoading = false;
@@ -58,16 +61,49 @@ class StatisticsController extends GetxController {
   }
 
   void _generateChartSpots() {
-    if (transactions.isEmpty) {
-      chartSpots = [const FlSpot(0, 0)];
-      return;
-    }
-
     chartSpots = [];
+    chartLabels = [];
 
     for (int i = 0; i < transactions.length; i++) {
-      final amount = (transactions[i]['amount'] as num).toDouble();
-      chartSpots.add(FlSpot(i.toDouble(), amount));
+      final amount =
+      (transactions[i]['amount'] as num).toDouble();
+
+      final date = DateTime.parse(
+        transactions[i]['date'],
+      );
+
+      chartSpots.add(
+        FlSpot(
+          i.toDouble(),
+          amount,
+        ),
+      );
+
+      switch (selectedPeriod) {
+        case 'Day':
+          chartLabels.add(
+            DateFormat('HH:mm').format(date),
+          );
+          break;
+
+        case 'Week':
+          chartLabels.add(
+            DateFormat('EEE').format(date),
+          );
+          break;
+
+        case 'Month':
+          chartLabels.add(
+            DateFormat('dd\nMMM').format(date),
+          );
+          break;
+
+        case 'Year':
+          chartLabels.add(
+            DateFormat('MMM').format(date),
+          );
+          break;
+      }
     }
   }
 

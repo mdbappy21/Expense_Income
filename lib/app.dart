@@ -1,3 +1,4 @@
+import 'package:expense_income/controller_binders.dart';
 import 'package:expense_income/presentation/ui/screen/main_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +11,7 @@ class ExpenseIncome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      initialBinding: ControllerBinder(),
       debugShowCheckedModeBanner: false,
       theme: _lightThemeData(),
       home: MainBottomNavBar(),

@@ -1,3 +1,4 @@
+import 'package:expense_income/presentation/state_holders/home_controller.dart';
 import 'package:expense_income/presentation/ui/screen/add_borrow_screen.dart';
 import 'package:expense_income/presentation/ui/screen/add_expense_screen.dart';
 import 'package:expense_income/presentation/ui/screen/add_income_screen.dart';
@@ -33,6 +34,7 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
 
       // Center Floating Button
       floatingActionButton: FloatingActionButton(
+        heroTag: 'main_fab',
         onPressed:(){
           _onTapFAB(context);
         } ,
@@ -84,26 +86,27 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     );
   }
 
-  void _onTapFAB(BuildContext context) async {
+  Future<void> _onTapFAB(BuildContext context) async {
     final size = MediaQuery.of(context).size;
+
     final selected = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
         size.width / 3,
-        size.height*.685,
+        size.height * .685,
         size.width / 3,
         0,
       ),
-      items: [
-        const PopupMenuItem(
+      items: const [
+        PopupMenuItem(
           value: 'income',
           child: Text('Add Income'),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'expense',
           child: Text('Add Expense'),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'borrow',
           child: Text('Add Borrow'),
         ),
@@ -111,11 +114,33 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     );
 
     if (selected == 'income') {
-      Get.to(()=>AddIncomeScreen());
-    } else if (selected == 'expense') {
-      Get.to(()=>AddExpenseScreen());
-    }else if (selected == 'borrow') {
-      Get.to(()=>AddBorrowScreen());
+      final result = await Get.to(
+            () => const AddIncomeScreen(),
+      );
+
+      if (result == true) {
+        Get.find<HomeController>().loadHomeData();
+      }
+    }
+
+    if (selected == 'expense') {
+      final result = await Get.to(
+            () => const AddExpenseScreen(),
+      );
+
+      if (result == true) {
+        Get.find<HomeController>().loadHomeData();
+      }
+    }
+
+    if (selected == 'borrow') {
+      final result = await Get.to(
+            () => const AddBorrowScreen(),
+      );
+
+      if (result == true) {
+        Get.find<HomeController>().loadHomeData();
+      }
     }
   }
 }
