@@ -1,4 +1,5 @@
 import 'package:expense_income/presentation/state_holders/home_controller.dart';
+import 'package:expense_income/presentation/state_holders/profile_controller.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -296,13 +297,17 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Md Bappy',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 28,
-          ),
+        GetBuilder<ProfileController>(
+          builder: (controller) {
+            return Text(
+              controller.userName,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white
+              ),
+            );
+          },
         ),
       ],
     );
