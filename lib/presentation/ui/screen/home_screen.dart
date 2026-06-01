@@ -38,12 +38,13 @@ class HomeScreen extends StatelessWidget {
                       _buildSummary(
                         income: controller.income,
                         expense: controller.expense,
-                        borrow: controller.borrow,
+                        payable: controller.payable,
+                        receivable: controller.receivable,
                         balance: controller.balance,
                       ),
                     ],
                   ),
-                  SizedBox(height: size.height * .12),
+                  SizedBox(height: size.height * .16),
                   _buildHistory(controller.transactions),
                 ],
               ),
@@ -104,10 +105,18 @@ class HomeScreen extends StatelessWidget {
       color = Colors.red;
       icon = Icons.arrow_upward;
       sign = '-';
-    } else {
-      color = Colors.orange;
-      icon = Icons.handshake;
+    } else if (type == 'payable') {
+      color = Colors.red;
+      icon = Icons.arrow_upward;
+      sign = '-';
+    } else if (type == 'receivable') {
+      color = Colors.green;
+      icon = Icons.arrow_downward;
       sign = '+';
+    } else {
+      color = Colors.grey;
+      icon = Icons.help_outline;
+      sign = '';
     }
 
     return Card(
@@ -135,13 +144,14 @@ class HomeScreen extends StatelessWidget {
   Widget _buildSummary({
     required double income,
     required double expense,
-    required double borrow,
+    required double payable,
+    required double receivable,
     required double balance,
   }) {
     return Positioned(
       left: 24,
       right: 24,
-      bottom: -72,
+      bottom: -90,
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: 8,
@@ -161,7 +171,8 @@ class HomeScreen extends StatelessWidget {
         child: _buildBalanceSummary(
           income: income,
           expense: expense,
-          borrow: borrow,
+          payable: payable,
+          receivable: receivable,
           balance: balance,
         ),
       ),
@@ -171,7 +182,8 @@ class HomeScreen extends StatelessWidget {
   Widget _buildBalanceSummary({
     required double income,
     required double expense,
-    required double borrow,
+    required double payable,
+    required double receivable,
     required double balance,
   }) {
     return Column(
@@ -216,14 +228,21 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildAmount(
-              'Borrow',
-              borrow,
-              Colors.orange,
-              Colors.orange.shade100,
-              Icons.handshake,
+              'Payable',
+              payable,
+              Colors.red,
+              Colors.red.shade100,
+              Icons.arrow_upward,
+            ),
+            _buildAmount(
+              'Receivable',
+              receivable,
+              Colors.green,
+              Colors.green.shade100,
+              Icons.arrow_downward,
             ),
           ],
         ),

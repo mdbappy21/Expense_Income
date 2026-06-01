@@ -1,7 +1,8 @@
 import 'package:expense_income/presentation/state_holders/home_controller.dart';
-import 'package:expense_income/presentation/ui/screen/add_borrow_screen.dart';
 import 'package:expense_income/presentation/ui/screen/add_expense_screen.dart';
 import 'package:expense_income/presentation/ui/screen/add_income_screen.dart';
+import 'package:expense_income/presentation/ui/screen/add_payable_screen.dart';
+import 'package:expense_income/presentation/ui/screen/add_receivable_screen.dart';
 import 'package:expense_income/presentation/ui/screen/home_screen.dart';
 import 'package:expense_income/presentation/ui/screen/note_screen.dart';
 import 'package:expense_income/presentation/ui/screen/profile_screen.dart';
@@ -20,7 +21,7 @@ class MainBottomNavBar extends StatefulWidget {
 class _MainBottomNavBarState extends State<MainBottomNavBar> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screen = [
+  final List<Widget> _screens = const [
     HomeScreen(),
     NoteScreen(),
     StatisticsScreen(),
@@ -30,14 +31,11 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screen[_selectedIndex],
+      body: _screens[_selectedIndex],
 
-      // Center Floating Button
       floatingActionButton: FloatingActionButton(
         heroTag: 'main_fab',
-        onPressed:(){
-          _onTapFAB(context);
-        } ,
+        onPressed: () => _onTapFAB(context),
         backgroundColor: AppColors.themeColor,
         shape: const CircleBorder(),
         child: const Icon(Icons.add, size: 24, color: Colors.white),
@@ -98,25 +96,15 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
         0,
       ),
       items: const [
-        PopupMenuItem(
-          value: 'income',
-          child: Text('Add Income'),
-        ),
-        PopupMenuItem(
-          value: 'expense',
-          child: Text('Add Expense'),
-        ),
-        PopupMenuItem(
-          value: 'borrow',
-          child: Text('Add Borrow'),
-        ),
+        PopupMenuItem(value: 'income', child: Text('Add Income')),
+        PopupMenuItem(value: 'expense', child: Text('Add Expense')),
+        PopupMenuItem(value: 'payable', child: Text('Add Payable')),
+        PopupMenuItem(value: 'receivable', child: Text('Add Receivable')),
       ],
     );
 
     if (selected == 'income') {
-      final result = await Get.to(
-            () => const AddIncomeScreen(),
-      );
+      final result = await Get.to(() => const AddIncomeScreen());
 
       if (result == true) {
         Get.find<HomeController>().loadHomeData();
@@ -124,19 +112,23 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     }
 
     if (selected == 'expense') {
-      final result = await Get.to(
-            () => const AddExpenseScreen(),
-      );
+      final result = await Get.to(() => const AddExpenseScreen());
 
       if (result == true) {
         Get.find<HomeController>().loadHomeData();
       }
     }
 
-    if (selected == 'borrow') {
-      final result = await Get.to(
-            () => const AddBorrowScreen(),
-      );
+    if (selected == 'payable') {
+      final result = await Get.to(() => const AddPayableScreen());
+
+      if (result == true) {
+        Get.find<HomeController>().loadHomeData();
+      }
+    }
+
+    if (selected == 'receivable') {
+      final result = await Get.to(() => const AddReceivableScreen());
 
       if (result == true) {
         Get.find<HomeController>().loadHomeData();

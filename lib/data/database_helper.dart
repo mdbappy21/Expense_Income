@@ -73,17 +73,29 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-      CREATE TABLE borrows (
+      CREATE TABLE payables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         amount REAL NOT NULL,
-        borrow_date TEXT NOT NULL,
+        payable_date TEXT NOT NULL,
         return_date TEXT,
         description TEXT,
         is_returned INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+  CREATE TABLE receivables (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    amount REAL NOT NULL,
+    expected_date TEXT NOT NULL,
+    description TEXT,
+    is_received INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )
+''');
   }
 
   // -------------------- Income --------------------
@@ -144,21 +156,21 @@ class DatabaseHelper {
     return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
   }
 
-  // -------------------- Borrow --------------------
+  // -------------------- payable --------------------
 
-  Future<int> insertBorrow({
+  Future<int> insertPayable({
     required String name,
     required double amount,
-    required DateTime borrowDate,
+    required DateTime payableDate,
     DateTime? returnDate,
     String? description,
   }) async {
     final db = await database;
 
-    return await db.insert('borrows', {
+    return await db.insert('payables', {
       'name': name,
       'amount': amount,
-      'borrow_date': borrowDate.toIso8601String(),
+      'payable_date': payableDate.toIso8601String(),
       'return_date': returnDate?.toIso8601String(),
       'description': description,
       'is_returned': 0,
@@ -166,25 +178,79 @@ class DatabaseHelper {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getBorrows() async {
+  Future<List<Map<String, dynamic>>> getPayables() async {
     final db = await database;
-    return await db.query('borrows', orderBy: 'borrow_date DESC');
+    return await db.query('payables', orderBy: 'payable_date DESC');
   }
 
-  Future<int> updateBorrowReturned(int id, bool isReturned) async {
+  Future<int> updatePayablePaid(int id, bool isReturned) async {
     final db = await database;
 
     return await db.update(
-      'borrows',
+      'payables',
       {'is_returned': isReturned ? 1 : 0},
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  Future<int> deleteBorrow(int id) async {
+  Future<int> deletePayable(int id) async {
     final db = await database;
-    return await db.delete('borrows', where: 'id = ?', whereArgs: [id]);
+    return await db.delete('payables', where: 'id = ?', whereArgs: [id]);
+  }
+
+  //----------------------receivable--------------------
+  Future<int> insertReceivable({
+    required String source,
+    required double amount,
+    required DateTime expectedDate,
+    String? description,
+  }) async {
+    final db = await database;
+
+    return await db.insert('receivables', {
+      'source': source,
+      'amount': amount,
+      'expected_date': expectedDate.toIso8601String(),
+      'description': description,
+      'is_received': 0,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getReceivables() async {
+    final db = await database;
+
+    return await db.query('receivables', orderBy: 'expected_date DESC');
+  }
+
+  Future<int> updateReceivableReceived(int id, bool isReceived) async {
+    final db = await database;
+
+    return await db.update(
+      'receivables',
+      {'is_received': isReceived ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteReceivable(int id) async {
+    final db = await database;
+
+    return await db.delete('receivables', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getReceivableTotal() async {
+    final db = await database;
+
+    final result = await db.rawQuery('''
+    SELECT SUM(amount) as total
+    FROM receivables
+    WHERE is_received = 0
+    ''');
+
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
   // -------------------- Text Note --------------------
@@ -254,19 +320,25 @@ class DatabaseHelper {
   //---------------------transaction history and summary total ----------------
   Future<double> getIncomeTotal() async {
     final db = await database;
-    final result = await db.rawQuery('SELECT SUM(amount) as total FROM incomes');
+    final result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM incomes',
+    );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
   Future<double> getExpenseTotal() async {
     final db = await database;
-    final result = await db.rawQuery('SELECT SUM(amount) as total FROM expenses');
+    final result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM expenses',
+    );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
-  Future<double> getBorrowTotal() async {
+  Future<double> getPayableTotal() async {
     final db = await database;
-    final result = await db.rawQuery('SELECT SUM(amount) as total FROM borrows');
+    final result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM payables',
+    );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
@@ -283,16 +355,23 @@ class DatabaseHelper {
     FROM expenses
   ''');
 
-    final borrows = await db.rawQuery('''
-    SELECT id, name as title, amount, borrow_date as date, description, 'borrow' as type
-    FROM borrows
+    final payables = await db.rawQuery('''
+    SELECT id, name as title, amount, payable_date as date, description, 'payable' as type
+    FROM payables
   ''');
 
-    final transactions = [
-      ...incomes,
-      ...expenses,
-      ...borrows,
-    ];
+    final receivables = await db.rawQuery('''
+  SELECT
+  id,
+  source as title,
+  amount,
+  expected_date as date,
+  description,
+  'receivable' as type
+  FROM receivables
+''');
+
+    final transactions = [...incomes, ...expenses, ...payables, ...receivables];
 
     transactions.sort((a, b) {
       final dateA = DateTime.parse(a['date'] as String);
@@ -326,26 +405,51 @@ class DatabaseHelper {
     final start = startDate.toIso8601String();
 
     if (type == 'Income') {
-      return await db.rawQuery('''
+      return await db.rawQuery(
+        '''
       SELECT id, category as title, amount, date, description, 'Income' as type
       FROM incomes
       WHERE date >= ?
       ORDER BY amount DESC
-    ''', [start]);
+    ''',
+        [start],
+      );
     } else if (type == 'Expense') {
-      return await db.rawQuery('''
+      return await db.rawQuery(
+        '''
       SELECT id, name as title, amount, date, description, 'Expense' as type
       FROM expenses
       WHERE date >= ?
       ORDER BY amount DESC
-    ''', [start]);
+    ''',
+        [start],
+      );
+    } else if (type == 'Receivable') {
+      return await db.rawQuery(
+        '''
+    SELECT
+    id,
+    source as title,
+    amount,
+    expected_date as date,
+    description,
+    'Receivable' as type
+    FROM receivables
+    WHERE expected_date >= ?
+    ORDER BY amount DESC
+  ''',
+        [start],
+      );
     } else {
-      return await db.rawQuery('''
-      SELECT id, name as title, amount, borrow_date as date, description, 'Borrow' as type
-      FROM borrows
-      WHERE borrow_date >= ?
+      return await db.rawQuery(
+        '''
+      SELECT id, name as title, amount, payable_date as date, description, 'Payable' as type
+      FROM payables
+      WHERE payable_date >= ?
       ORDER BY amount DESC
-    ''', [start]);
+    ''',
+        [start],
+      );
     }
   }
 
@@ -375,10 +479,7 @@ class DatabaseHelper {
 
     return await db.update(
       'notes',
-      {
-        'title': title,
-        'content': content,
-      },
+      {'title': title, 'content': content},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -394,28 +495,19 @@ class DatabaseHelper {
     return await db.transaction((txn) async {
       await txn.update(
         'notes',
-        {
-          'title': title,
-        },
+        {'title': title},
         where: 'id = ?',
         whereArgs: [noteId],
       );
 
-      await txn.delete(
-        'note_items',
-        where: 'note_id = ?',
-        whereArgs: [noteId],
-      );
+      await txn.delete('note_items', where: 'note_id = ?', whereArgs: [noteId]);
 
       for (final item in items) {
-        await txn.insert(
-          'note_items',
-          {
-            'note_id': noteId,
-            'text': item['text'],
-            'is_checked': item['is_checked'] ? 1 : 0,
-          },
-        );
+        await txn.insert('note_items', {
+          'note_id': noteId,
+          'text': item['text'],
+          'is_checked': item['is_checked'] ? 1 : 0,
+        });
       }
 
       return noteId;

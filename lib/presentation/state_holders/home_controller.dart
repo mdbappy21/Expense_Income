@@ -6,7 +6,8 @@ class HomeController extends GetxController {
 
   double income = 0;
   double expense = 0;
-  double borrow = 0;
+  double payable = 0;
+  double receivable = 0;
   double balance = 0;
 
   List<Map<String, dynamic>> transactions = [];
@@ -23,13 +24,17 @@ class HomeController extends GetxController {
       update();
 
       income = await DatabaseHelper.instance.getIncomeTotal();
+
       expense = await DatabaseHelper.instance.getExpenseTotal();
-      borrow = await DatabaseHelper.instance.getBorrowTotal();
+
+      payable = await DatabaseHelper.instance.getPayableTotal();
+
+      receivable = await DatabaseHelper.instance.getReceivableTotal();
 
       transactions =
       await DatabaseHelper.instance.getAllTransactions();
 
-      balance = income + borrow - expense;
+      balance = income + receivable - expense - payable;
     } finally {
       isLoading = false;
       update();

@@ -2,10 +2,10 @@ import 'package:expense_income/data/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class AddBorrowController extends GetxController {
+class AddPayableController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  DateTime? borrowDate;
+  DateTime? payableDate;
   DateTime? returnDate;
 
   final TextEditingController nameTEController = TextEditingController();
@@ -24,20 +24,20 @@ class AddBorrowController extends GetxController {
     super.onClose();
   }
 
-  Future<void> pickBorrowDate(BuildContext context) async {
+  Future<void> pickPayableDate(BuildContext context) async {
     final DateTime now = DateTime.now();
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: borrowDate ?? now,
+      initialDate: payableDate ?? now,
       currentDate: now,
       firstDate: DateTime(2000),
       lastDate: now,
-      helpText: 'Select borrow date',
+      helpText: 'Select payable date',
     );
 
     if (pickedDate != null) {
-      borrowDate = pickedDate;
+      payableDate = pickedDate;
       update();
     }
   }
@@ -60,13 +60,13 @@ class AddBorrowController extends GetxController {
     }
   }
 
-  Future<void> saveBorrow() async {
+  Future<void> savePayable() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
 
-    if (borrowDate == null) {
-      Get.snackbar('Error', 'Please select borrow date');
+    if (payableDate == null) {
+      Get.snackbar('Error', 'Please select payable date');
       return;
     }
 
@@ -79,22 +79,27 @@ class AddBorrowController extends GetxController {
       isLoading = true;
       update();
 
-      await DatabaseHelper.instance.insertBorrow(
+      await DatabaseHelper.instance.insertPayable(
         name: nameTEController.text.trim(),
         amount: double.parse(amountTEController.text.trim()),
-        borrowDate: borrowDate!,
+        payableDate: payableDate!,
         returnDate: returnDate!,
         description: descriptionTEController.text.trim(),
       );
 
-      Get.back(result: true);
-
-      Get.snackbar('Success', 'Borrow added successfully');
-    } catch (e) {
-      Get.snackbar('Error', e.toString());
-    } finally {
       isLoading = false;
       update();
+
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      Get.back(result: true);
+
+      Get.snackbar('Success', 'Payable added successfully');
+    } catch (e) {
+      isLoading = false;
+      update();
+
+      Get.snackbar('Error', e.toString());
     }
   }
 }

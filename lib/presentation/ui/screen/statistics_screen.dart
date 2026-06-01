@@ -184,7 +184,7 @@ class StatisticsScreen extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 32,
-                      interval: highestY / 4,
+                      interval: highestY <= 0 ? 1 : highestY / 4,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toInt()}',
@@ -302,19 +302,40 @@ class StatisticsScreen extends StatelessWidget {
   }) {
     final parsedDate = DateTime.parse(date);
 
-    final bool isExpense = controller.selectedType == 'Expense';
+    Color mainColor;
+    IconData icon;
+    String sign;
 
-    final Color mainColor = isExpense
-        ? Colors.red
-        : controller.selectedType == 'Income'
-        ? Colors.green
-        : Colors.orange;
+    switch (controller.selectedType) {
+      case 'Income':
+        mainColor = Colors.green;
+        icon = Icons.arrow_downward;
+        sign = '+';
+        break;
 
-    final IconData icon = isExpense
-        ? Icons.arrow_upward
-        : controller.selectedType == 'Income'
-        ? Icons.arrow_downward
-        : Icons.handshake;
+      case 'Expense':
+        mainColor = Colors.red;
+        icon = Icons.arrow_upward;
+        sign = '-';
+        break;
+
+      case 'Payable':
+        mainColor = Colors.orange;
+        icon = Icons.payments_outlined;
+        sign = '-';
+        break;
+
+      case 'Receivable':
+        mainColor = Colors.blue;
+        icon = Icons.account_balance_wallet_outlined;
+        sign = '+';
+        break;
+
+      default:
+        mainColor = Colors.grey;
+        icon = Icons.help_outline;
+        sign = '';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -366,7 +387,7 @@ class StatisticsScreen extends StatelessWidget {
             ),
           ),
           Text(
-            '${isExpense ? '-' : '+'} ${amount.toStringAsFixed(2)} TK',
+            '$sign ${amount.toStringAsFixed(2)} TK',
             style: TextStyle(
               color: isSelected ? Colors.white : mainColor,
               fontSize: 16,

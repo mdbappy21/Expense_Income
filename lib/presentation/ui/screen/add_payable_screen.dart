@@ -1,15 +1,15 @@
-import 'package:expense_income/presentation/state_holders/add_borrow_controller.dart';
+import 'package:expense_income/presentation/state_holders/add_payable_controller.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-class AddBorrowScreen extends StatelessWidget {
-  const AddBorrowScreen({super.key});
+class AddPayableScreen extends StatelessWidget {
+  const AddPayableScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<AddBorrowController>(
+    return GetBuilder<AddPayableController>(
       builder: (controller) {
         Size size = MediaQuery.of(context).size;
 
@@ -23,7 +23,7 @@ class AddBorrowScreen extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       _buildTop(size),
-                      _buildAddBorrow(size, context, controller),
+                      _buildAddPayable(size, context, controller),
                     ],
                   ),
                 ),
@@ -55,7 +55,7 @@ class AddBorrowScreen extends StatelessWidget {
           ),
           const Expanded(
             child: Text(
-              'Borrow',
+              'Add Payable',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
@@ -66,10 +66,10 @@ class AddBorrowScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAddBorrow(
+  Widget _buildAddPayable(
     Size size,
     BuildContext context,
-    AddBorrowController controller,
+    AddPayableController controller,
   ) {
     return Positioned(
       left: 24,
@@ -88,8 +88,8 @@ class AddBorrowScreen extends StatelessWidget {
               TextFormField(
                 controller: controller.nameTEController,
                 decoration: const InputDecoration(
-                  hintText: 'Name',
-                  labelText: 'Name',
+                  hintText: 'Person Name',
+                  labelText: 'Person Name',
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -128,13 +128,12 @@ class AddBorrowScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => controller.pickBorrowDate(context),
+                  onPressed: () => controller.pickPayableDate(context),
                   child: Text(
-                    controller.borrowDate == null
-                        ? 'Borrow Date'
+                    controller.payableDate == null ? 'Payable Date'
                         : DateFormat(
                             'dd MMM yyyy',
-                          ).format(controller.borrowDate!),
+                          ).format(controller.payableDate!),
                   ),
                 ),
               ),
@@ -147,7 +146,7 @@ class AddBorrowScreen extends StatelessWidget {
                   onPressed: () => controller.pickReturnDate(context),
                   child: Text(
                     controller.returnDate == null
-                        ? 'Return Date'
+                        ? 'Expected Payment Date'
                         : DateFormat(
                             'dd MMM yyyy',
                           ).format(controller.returnDate!),
@@ -174,14 +173,14 @@ class AddBorrowScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: controller.isLoading
                       ? null
-                      : controller.saveBorrow,
+                      : controller.savePayable,
                   child: controller.isLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Add'),
+                      : const Text('Add Payable'),
                 ),
               ),
             ],
