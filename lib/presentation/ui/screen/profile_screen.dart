@@ -1,4 +1,5 @@
 import 'package:expense_income/presentation/state_holders/profile_controller.dart';
+import 'package:expense_income/presentation/ui/screen/notification_screen.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -59,6 +60,14 @@ class ProfileScreen extends StatelessWidget {
                     title: 'Notifications',
                     trailing: const Text('Soon'),
                     onTap: () {},
+                  ),
+
+                  _buildTile(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Notification Settings',
+                    onTap: () {
+                      Get.to(() => const NotificationScreen());
+                    },
                   ),
 
                   _buildTile(

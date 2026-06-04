@@ -6,6 +6,7 @@ import 'package:expense_income/presentation/state_holders/home_controller.dart';
 import 'package:expense_income/presentation/state_holders/note_controller.dart';
 import 'package:expense_income/presentation/state_holders/note_liist_controller.dart';
 import 'package:expense_income/presentation/state_holders/note_text_controller.dart';
+import 'package:expense_income/presentation/state_holders/notification_controller.dart';
 import 'package:expense_income/presentation/state_holders/profile_controller.dart';
 import 'package:get/get.dart';
 
@@ -21,5 +22,6 @@ class ControllerBinder extends Bindings {
     Get.lazyPut<NoteTextController>(() => NoteTextController(), fenix: true);
     Get.lazyPut<NoteListController>(() => NoteListController(), fenix: true);
     Get.lazyPut<ProfileController>(() => ProfileController(), fenix: true,);
+    Get.lazyPut<NotificationController>(() => NotificationController(), fenix: true,);
   }
 }

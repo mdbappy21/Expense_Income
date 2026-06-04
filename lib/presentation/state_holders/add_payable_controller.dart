@@ -87,6 +87,19 @@ class AddPayableController extends GetxController {
         description: descriptionTEController.text.trim(),
       );
 
+      final payableId = await DatabaseHelper.instance.insertPayable(
+        name: nameTEController.text.trim(),
+        amount: double.parse(amountTEController.text.trim()),
+        payableDate: payableDate!,
+      );
+      await DatabaseHelper.instance.insertNotification(
+        referenceId: payableId,
+        title: 'Payment Reminder',
+        body:
+        'Pay ${amountTEController.text} TK to ${nameTEController.text}',
+        type: 'payable',
+      );
+
       isLoading = false;
       update();
 

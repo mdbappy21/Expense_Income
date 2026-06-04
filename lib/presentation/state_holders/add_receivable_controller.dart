@@ -75,6 +75,21 @@ class AddReceivableController extends GetxController {
         descriptionTEController.text.trim(),
       );
 
+      final receivableId = await DatabaseHelper.instance.insertReceivable(
+          source: sourceTEController.text.trim(),
+          amount: double.parse(
+            amountTEController.text.trim(),
+          ),
+          expectedDate: expectedDate!,
+      );
+      await DatabaseHelper.instance.insertNotification(
+        referenceId: receivableId,
+        title: 'Collection Reminder',
+        body:
+        'Receive ${amountTEController.text} TK from ${sourceTEController.text}',
+        type: 'receivable',
+      );
+
       isLoading = false;
       update();
 

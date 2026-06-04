@@ -86,16 +86,28 @@ class DatabaseHelper {
     ''');
 
     await db.execute('''
-  CREATE TABLE receivables (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source TEXT NOT NULL,
-    amount REAL NOT NULL,
-    expected_date TEXT NOT NULL,
-    description TEXT,
-    is_received INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
-  )
-''');
+      CREATE TABLE receivables (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        amount REAL NOT NULL,
+        expected_date TEXT NOT NULL,
+        description TEXT,
+        is_received INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE notifications(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        type TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
   }
 
   // -------------------- Income --------------------
@@ -337,7 +349,7 @@ class DatabaseHelper {
   Future<double> getPayableTotal() async {
     final db = await database;
     final result = await db.rawQuery(
-      'SELECT SUM(amount) as total FROM payables',
+      'SELECT SUM(amount) as total FROM payables WHERE is_returned = 0',
     );
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
@@ -356,7 +368,7 @@ class DatabaseHelper {
   ''');
 
     final payables = await db.rawQuery('''
-    SELECT id, name as title, amount, payable_date as date, description, 'payable' as type
+    SELECT id, name as title, amount, payable_date as date, description, is_returned,'payable' as type
     FROM payables
   ''');
 
@@ -367,6 +379,7 @@ class DatabaseHelper {
   amount,
   expected_date as date,
   description,
+  is_received,
   'receivable' as type
   FROM receivables
 ''');
@@ -382,10 +395,7 @@ class DatabaseHelper {
     return transactions;
   }
 
-  Future<List<Map<String, dynamic>>> getTransactionsByTypeAndPeriod({
-    required String type,
-    required String period,
-  }) async {
+  Future<List<Map<String, dynamic>>> getTransactionsByTypeAndPeriod({required String type, required String period,}) async {
     final db = await database;
 
     final now = DateTime.now();
@@ -453,6 +463,50 @@ class DatabaseHelper {
     }
   }
 
+  Future<Map<String, dynamic>?> getTransactionDetail({
+    required String type,
+    required int id,
+  }) async {
+    final db = await database;
+
+    switch (type) {
+      case 'income':
+        final result = await db.query(
+          'incomes',
+          where: 'id=?',
+          whereArgs: [id],
+        );
+        return result.isEmpty ? null : result.first;
+
+      case 'expense':
+        final result = await db.query(
+          'expenses',
+          where: 'id=?',
+          whereArgs: [id],
+        );
+        return result.isEmpty ? null : result.first;
+
+      case 'payable':
+        final result = await db.query(
+          'payables',
+          where: 'id=?',
+          whereArgs: [id],
+        );
+        return result.isEmpty ? null : result.first;
+
+      case 'receivable':
+        final result = await db.query(
+          'receivables',
+          where: 'id=?',
+          whereArgs: [id],
+        );
+        return result.isEmpty ? null : result.first;
+
+      default:
+        return null;
+    }
+  }
+  //------------------note---------------------------------
   Future<Map<String, dynamic>?> getNoteById(int id) async {
     final db = await database;
 
@@ -514,6 +568,155 @@ class DatabaseHelper {
     });
   }
 
+  //-----------------notification-------------------
+
+  Future<int> insertNotification({
+    required int referenceId,
+    required String title,
+    required String body,
+    required String type,
+  }) async {
+    final db = await database;
+
+    return await db.insert(
+      'notifications',
+      {
+        'reference_id': referenceId,
+        'title': title,
+        'body': body,
+        'type': type,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    final db = await database;
+
+    return await db.query(
+      'notifications',
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  Future<int> getPendingPayablesCount() async {
+    final db = await database;
+
+    final result = await db.rawQuery(
+      '''
+    SELECT COUNT(*)
+    FROM payables
+    WHERE is_returned = 0
+    ''',
+    );
+
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<int> getPendingReceivablesCount() async {
+    final db = await database;
+
+    final result = await db.rawQuery(
+      '''
+    SELECT COUNT(*)
+    FROM receivables
+    WHERE is_received = 0
+    ''',
+    );
+
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  //----------------------Notification Action--------------
+  Future<void> markPayablePaid(
+      int payableId,
+      ) async {
+    final db = await database;
+
+    final payable = await db.query(
+      'payables',
+      where: 'id=?',
+      whereArgs: [payableId],
+      limit: 1,
+    );
+
+    if (payable.isEmpty) return;
+
+    final item = payable.first;
+
+    if (item['is_returned'] == 1) return;
+
+    await insertExpense(
+      name: 'Payment to ${item['name']}',
+      amount: (item['amount'] as num).toDouble(),
+      date: DateTime.now(),
+      description:
+      item['description']?.toString(),
+    );
+
+    await db.update(
+      'payables',
+      {'is_returned': 1},
+      where: 'id=?',
+      whereArgs: [payableId],
+    );
+
+    await db.delete(
+      'notifications',
+      where:
+      'reference_id=? AND type=?',
+      whereArgs: [
+        payableId,
+        'payable',
+      ],
+    );
+  }
+
+  Future<void> markReceivableReceived(
+      int receivableId,
+      ) async {
+    final db = await database;
+
+    final receivable = await db.query(
+      'receivables',
+      where: 'id=?',
+      whereArgs: [receivableId],
+      limit: 1,
+    );
+
+    if (receivable.isEmpty) return;
+
+    final item = receivable.first;
+
+    if (item['is_received'] == 1) return;
+
+    await insertIncome(
+      category:
+      'Received from ${item['source']}',
+      amount: (item['amount'] as num)
+          .toDouble(),
+      date: DateTime.now(),
+      description:
+      item['description']?.toString(),
+    );
+
+    await db.update(
+      'receivables',
+      {'is_received': 1},
+      where: 'id=?',
+      whereArgs: [receivableId],
+    );
+
+    await db.delete(
+      'notifications',
+      where:
+      'reference_id=? AND type=?',
+      whereArgs: [
+        receivableId,
+        'receivable',
+      ],
+    );
+  }
   // -------------------- Close DB --------------------
 
   Future<void> closeDatabase() async {

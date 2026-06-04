@@ -1,5 +1,8 @@
 import 'package:expense_income/presentation/state_holders/home_controller.dart';
+import 'package:expense_income/presentation/state_holders/notification_controller.dart';
 import 'package:expense_income/presentation/state_holders/profile_controller.dart';
+import 'package:expense_income/presentation/ui/screen/notification_list_screen.dart';
+import 'package:expense_income/presentation/ui/screen/transaction_detail_screen.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -120,22 +123,32 @@ class HomeScreen extends StatelessWidget {
       sign = '';
     }
 
-    return Card(
-      color: Colors.grey.shade200,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withAlpha(40),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(item['title'] ?? ''),
-        subtitle: Text(
-          DateFormat('dd MMM yyyy').format(date),
-        ),
-        trailing: Text(
-          '$sign${amount.toStringAsFixed(2)} TK',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () {
+        Get.to(
+              () => TransactionDetailScreen(
+            id: item['id'],
+            type: item['type'],
+          ),
+        );
+      },
+      child: Card(
+        color: Colors.grey.shade200,
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: color.withAlpha(40),
+            child: Icon(icon, color: color),
+          ),
+          title: Text(item['title'] ?? ''),
+          subtitle: Text(
+            DateFormat('dd MMM yyyy').format(date),
+          ),
+          trailing: Text(
+            '$sign${amount.toStringAsFixed(2)} TK',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
@@ -313,17 +326,80 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // Widget _buildNotification() {
+  //   return GestureDetector(
+  //     onTap: (){
+  //       //todo notification
+  //     },
+  //     child: Container(
+  //       padding: const EdgeInsets.all(10),
+  //       decoration: BoxDecoration(
+  //         color: Colors.white.withAlpha(48),
+  //         borderRadius: BorderRadius.circular(24),
+  //       ),
+  //       child: const Icon(
+  //         Icons.notifications_none,
+  //         color: Colors.white,
+  //       ),
+  //     ),
+  //   );
+  // }
   Widget _buildNotification() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(48),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Icon(
-        Icons.notifications_none,
-        color: Colors.white,
-      ),
+    return GetBuilder<NotificationController>(
+      builder: (controller) {
+        return GestureDetector(
+          onTap: () {
+            Get.to(() => const NotificationListScreen());
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(48),
+                  borderRadius:
+                  BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white,
+                ),
+              ),
+
+              if (controller.pendingCount > 0)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding:
+                    const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration:
+                    const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      controller.pendingCount > 99
+                          ? '99+'
+                          : controller.pendingCount
+                          .toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight:
+                        FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
