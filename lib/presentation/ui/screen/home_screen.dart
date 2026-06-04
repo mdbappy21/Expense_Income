@@ -28,30 +28,42 @@ class HomeScreen extends StatelessWidget {
         return Scaffold(
           body: RefreshIndicator(
             onRefresh: controller.loadHomeData,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
+            child: Column(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _buildWelcomeNotification(
+                      size,
+                      controller.welcomeMessage,
+                    ),
+                    _buildSummary(
+                      income: controller.income,
+                      expense: controller.expense,
+                      payable: controller.payable,
+                      receivable: controller.receivable,
+                      balance: controller.balance,
+                    ),
+                  ],
+                ),
+                SizedBox(height: size.height * .16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
                     children: [
-                      _buildWelcomeNotification(
-                        size,
-                        controller.welcomeMessage,
+                      const Text(
+                        'Transactions History',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      _buildSummary(
-                        income: controller.income,
-                        expense: controller.expense,
-                        payable: controller.payable,
-                        receivable: controller.receivable,
-                        balance: controller.balance,
-                      ),
+                      const Divider(),
                     ],
                   ),
-                  SizedBox(height: size.height * .16),
-                  _buildHistory(controller.transactions),
-                ],
-              ),
+                ),
+                Expanded(child: _buildHistory(controller.transactions)),
+              ],
             ),
           ),
         );
@@ -59,35 +71,24 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHistory(List<Map<String, dynamic>> transactions) {
+  Widget _buildHistory(List<Map<String, dynamic>> transactions,) {
+    if (transactions.isEmpty) {
+      return const Center(
+        child: Text('No transaction found'),
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          const Text(
-            'Transactions History',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Divider(),
-          if (transactions.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('No transaction found'),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: transactions.length,
-              itemBuilder: (context, index) {
-                final item = transactions[index];
-                return _buildTransactionItem(item);
-              },
-            ),
-        ],
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: transactions.length,
+        itemBuilder: (context, index) {
+          final item = transactions[index];
+          return _buildTransactionItem(item);
+        },
       ),
     );
   }
@@ -326,24 +327,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget _buildNotification() {
-  //   return GestureDetector(
-  //     onTap: (){
-  //       //todo notification
-  //     },
-  //     child: Container(
-  //       padding: const EdgeInsets.all(10),
-  //       decoration: BoxDecoration(
-  //         color: Colors.white.withAlpha(48),
-  //         borderRadius: BorderRadius.circular(24),
-  //       ),
-  //       child: const Icon(
-  //         Icons.notifications_none,
-  //         color: Colors.white,
-  //       ),
-  //     ),
-  //   );
-  // }
   Widget _buildNotification() {
     return GetBuilder<NotificationController>(
       builder: (controller) {

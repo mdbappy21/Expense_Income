@@ -1,110 +1,116 @@
 import 'package:expense_income/presentation/state_holders/profile_controller.dart';
+import 'package:expense_income/presentation/ui/screen/notification_list_screen.dart';
 import 'package:expense_income/presentation/ui/screen/notification_screen.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  ProfileScreen({super.key});
+
+  final ProfileController profileController = Get.find<ProfileController>();
 
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
+      body: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildTop(size),
+              _buildProfileCard(size),
+            ],
+          ),
+
+          SizedBox(height: size.height * .14),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _buildTop(size),
-                _buildProfileCard(size),
-              ],
-            ),
+                _buildTile(
+                  icon: Icons.person_outline,
+                  title: 'Edit Name',
+                  onTap: () {
+                    profileController.updateName();
+                  },
+                ),
 
-            SizedBox(height: size.height * .14),
+                _buildTile(
+                  icon: Icons.photo_camera_outlined,
+                  title: 'Change Profile Picture',
+                  onTap: () {
+                    profileController.pickProfileImage();
+                  },
+                ),
 
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildTile(
-                    icon: Icons.person_outline,
-                    title: 'Edit Name',
-                    onTap: () {
-                      Get.find<ProfileController>().updateName();
-                    },
-                  ),
+                _buildTile(
+                  icon: Icons.share_outlined,
+                  title: 'Invite Friend',
+                  onTap: () {
+                    profileController.inviteFriend();
+                  },
+                ),
 
-                  _buildTile(
-                    icon: Icons.photo_camera_outlined,
-                    title: 'Change Profile Picture',
-                    onTap: () {
-                      Get.find<ProfileController>().pickProfileImage();
-                    },
-                  ),
+                const Divider(),
 
-                  _buildTile(
-                    icon: Icons.share_outlined,
-                    title: 'Invite Friend',
-                    onTap: () {
-                      Get.find<ProfileController>().inviteFriend();
-                    },
-                  ),
+                _buildTile(
+                  icon: Icons.notifications_outlined,
+                  title: 'Notifications',
+                  onTap: () {
+                    Get.to(() => const NotificationListScreen());
+                  },
+                ),
 
-                  const Divider(),
+                _buildTile(
+                  icon: Icons.notifications_active_outlined,
+                  title: 'Notification Settings',
+                  onTap: () {
+                    Get.to(() => const NotificationScreen());
+                  },
+                ),
 
-                  _buildTile(
-                    icon: Icons.notifications_outlined,
-                    title: 'Notifications',
-                    trailing: const Text('Soon'),
-                    onTap: () {},
-                  ),
+                _buildTile(
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Theme',
+                  trailing: const Text('Soon'),
+                  onTap: () {},
+                ),
 
-                  _buildTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: 'Notification Settings',
-                    onTap: () {
-                      Get.to(() => const NotificationScreen());
-                    },
-                  ),
+                const Divider(),
 
-                  _buildTile(
-                    icon: Icons.dark_mode_outlined,
-                    title: 'Theme',
-                    trailing: const Text('Soon'),
-                    onTap: () {},
-                  ),
+                _buildTile(
+                  icon: Icons.info_outline,
+                  title: 'About App',
+                  onTap: () {
+                    _showAboutDialog(context);
+                  },
+                ),
 
-                  const Divider(),
+                const SizedBox(height: 12),
 
-                  _buildTile(
-                    icon: Icons.info_outline,
-                    title: 'About App',
-                    onTap: () {
-                      _showAboutDialog(context);
-                    },
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Center(
-                    child: Text(
-                      'Version 1.0.0',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
+                Center(
+                  child: Text(
+                    'Version 1.0.0',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 24),
-                ],
-              ),
+                const SizedBox(height: 24),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -112,7 +118,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildTop(Size size) {
     return Container(
       width: double.infinity,
-      height: size.height * .25,
+      height: size.height * .28,
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 90),
       decoration: const BoxDecoration(
         color: AppColors.themeColor,
@@ -154,17 +160,22 @@ class ProfileScreen extends StatelessWidget {
 
               Positioned(
                 right: 0,
-                bottom: 0,
+                bottom: 16,
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: const BoxDecoration(
                     color: AppColors.themeColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 18,
+                  child: IconButton(
+                    onPressed: () {
+                      profileController.pickProfileImage();
+                    },
+                    icon: Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),

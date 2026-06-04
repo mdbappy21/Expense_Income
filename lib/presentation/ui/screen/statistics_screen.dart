@@ -1,4 +1,5 @@
 import 'package:expense_income/presentation/state_holders/statistics_controller.dart';
+import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,6 +15,23 @@ class StatisticsScreen extends StatelessWidget {
       builder: (controller) {
         return Scaffold(
           backgroundColor: const Color(0xfffbfbfb),
+          appBar: AppBar(
+            backgroundColor: AppColors.themeColor,
+            centerTitle: true,
+            title: Text('Statistics',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: .w500,
+                color: Colors.white
+              ),
+            ),
+            actions: [
+              IconButton(onPressed: (){
+                controller.exportPdf;
+              }, icon: const Icon(Icons.file_download_outlined),color: Colors.white,),
+              const SizedBox(width: 16)
+            ],
+          ),
           body: SafeArea(
             child: controller.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -24,8 +42,6 @@ class StatisticsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildHeader(controller),
-                  const SizedBox(height: 28),
                   _buildPeriodTabs(controller),
                   const SizedBox(height: 16),
                   _buildDropdown(controller),
@@ -42,29 +58,6 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(StatisticsController controller) {
-    return Row(
-      children: [
-        InkWell(
-          onTap: () => Get.back(),
-          child: const Icon(Icons.arrow_back_ios, size: 18),
-        ),
-        const Spacer(),
-        const Text(
-          'Statistics',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const Spacer(),
-        InkWell(
-          onTap: controller.exportPdf,
-          child: const Icon(Icons.file_download_outlined),
-        ),
-      ],
-    );
-  }
 
   Widget _buildPeriodTabs(StatisticsController controller) {
     return SingleChildScrollView(

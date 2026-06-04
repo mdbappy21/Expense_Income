@@ -29,7 +29,7 @@ class ProfileController extends GetxController {
 
       userName =
           prefs.getString('profile_name') ??
-              'User';
+              'Dear User';
 
       profileImagePath =
           prefs.getString('profile_image');

@@ -79,7 +79,7 @@ class AddPayableController extends GetxController {
       isLoading = true;
       update();
 
-      await DatabaseHelper.instance.insertPayable(
+      final payableId = await DatabaseHelper.instance.insertPayable(
         name: nameTEController.text.trim(),
         amount: double.parse(amountTEController.text.trim()),
         payableDate: payableDate!,
@@ -87,11 +87,6 @@ class AddPayableController extends GetxController {
         description: descriptionTEController.text.trim(),
       );
 
-      final payableId = await DatabaseHelper.instance.insertPayable(
-        name: nameTEController.text.trim(),
-        amount: double.parse(amountTEController.text.trim()),
-        payableDate: payableDate!,
-      );
       await DatabaseHelper.instance.insertNotification(
         referenceId: payableId,
         title: 'Payment Reminder',
