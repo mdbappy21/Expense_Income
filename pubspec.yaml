@@ -1,12 +1,12 @@
 name: expense_income
-description: "A new Flutter project."
+description: "Spendora - Personal income and expense manager."
 
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.8
+  sdk: ^3.12.0
 
 dependencies:
   flutter:
