@@ -21,11 +21,7 @@ class AddReceivableScreen extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   _buildTop(size),
-                  _buildAddReceivable(
-                    size,
-                    context,
-                    controller,
-                  ),
+                  _buildAddReceivable(size, context, controller),
                 ],
               ),
             ),
@@ -39,12 +35,7 @@ class AddReceivableScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: size.height * .28,
-      padding: const EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 90,
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 90),
       decoration: const BoxDecoration(
         color: AppColors.themeColor,
         borderRadius: BorderRadius.only(
@@ -60,12 +51,9 @@ class AddReceivableScreen extends StatelessWidget {
           ),
           const Expanded(
             child: Text(
-              'Add Receivable',
+              'Lend Money',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(width: 48),
@@ -75,21 +63,18 @@ class AddReceivableScreen extends StatelessWidget {
   }
 
   Widget _buildAddReceivable(
-      Size size,
-      BuildContext context,
-      AddReceivableController controller,
-      ) {
+    Size size,
+    BuildContext context,
+    AddReceivableController controller,
+  ) {
     return Positioned(
       left: 24,
       right: 24,
       top: size.height * .18,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 24,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Form(
@@ -99,13 +84,12 @@ class AddReceivableScreen extends StatelessWidget {
               TextFormField(
                 controller: controller.sourceTEController,
                 decoration: const InputDecoration(
-                  hintText: 'Source',
-                  labelText: 'Source',
+                  hintText: 'Name',
+                  labelText: 'Name',
                 ),
                 validator: (value) {
-                  if (value == null ||
-                      value.trim().isEmpty) {
-                    return 'Enter source';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter Name';
                   }
                   return null;
                 },
@@ -115,8 +99,7 @@ class AddReceivableScreen extends StatelessWidget {
 
               TextFormField(
                 controller: controller.amountTEController,
-                keyboardType:
-                const TextInputType.numberWithOptions(
+                keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: const InputDecoration(
@@ -124,15 +107,11 @@ class AddReceivableScreen extends StatelessWidget {
                   labelText: 'Amount',
                 ),
                 validator: (value) {
-                  if (value == null ||
-                      value.trim().isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'Enter amount';
                   }
 
-                  if (double.tryParse(
-                    value.trim(),
-                  ) ==
-                      null) {
+                  if (double.tryParse(value.trim()) == null) {
                     return 'Enter valid amount';
                   }
 
@@ -145,18 +124,13 @@ class AddReceivableScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () =>
-                      controller.pickExpectedDate(
-                        context,
-                      ),
+                  onPressed: () => controller.pickExpectedDate(context),
                   child: Text(
                     controller.expectedDate == null
                         ? 'Expected Receive Date'
                         : DateFormat(
-                      'dd MMM yyyy',
-                    ).format(
-                      controller.expectedDate!,
-                    ),
+                            'dd MMM yyyy',
+                          ).format(controller.expectedDate!),
                   ),
                 ),
               ),
@@ -164,8 +138,7 @@ class AddReceivableScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               TextFormField(
-                controller:
-                controller.descriptionTEController,
+                controller: controller.descriptionTEController,
                 maxLines: 2,
                 maxLength: 120,
                 decoration: const InputDecoration(
@@ -184,16 +157,11 @@ class AddReceivableScreen extends StatelessWidget {
                       : controller.saveReceivable,
                   child: controller.isLoading
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child:
-                    CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
-                  )
-                      : const Text(
-                    'Add Receivable',
-                  ),
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Add Lend Moeny'),
                 ),
               ),
             ],

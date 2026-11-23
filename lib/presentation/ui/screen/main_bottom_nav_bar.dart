@@ -53,13 +53,13 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(icon: Icons.home_rounded, index: 0),
-              _buildNavItem(icon: Icons.edit_document, index: 1),
+              _buildNavItem(context, icon: Icons.home_rounded, index: 0),
+              _buildNavItem(context, icon: Icons.edit_document, index: 1),
 
               const SizedBox(width: 40),
 
-              _buildNavItem(icon: Icons.bar_chart_rounded, index: 2),
-              _buildNavItem(icon: Icons.account_circle, index: 3),
+              _buildNavItem(context, icon: Icons.bar_chart_rounded, index: 2),
+              _buildNavItem(context, icon: Icons.account_circle, index: 3),
             ],
           ),
         ),
@@ -67,10 +67,14 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required int index}) {
+  Widget _buildNavItem(
+    BuildContext context, {
+    required IconData icon,
+    required int index,
+  }) {
     return IconButton(
       onPressed: () {
-        if(mounted){
+        if (mounted) {
           setState(() {
             _selectedIndex = index;
           });
@@ -79,7 +83,9 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
       icon: Icon(
         icon,
         size: 28,
-        color: _selectedIndex == index ? AppColors.themeColor : AppColors.themeColor2,
+        color: _selectedIndex == index
+            ? AppColors.themeColor
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -98,8 +104,8 @@ class _MainBottomNavBarState extends State<MainBottomNavBar> {
       items: const [
         PopupMenuItem(value: 'income', child: Text('Add Income')),
         PopupMenuItem(value: 'expense', child: Text('Add Expense')),
-        PopupMenuItem(value: 'payable', child: Text('Add Payable')),
-        PopupMenuItem(value: 'receivable', child: Text('Add Receivable')),
+        PopupMenuItem(value: 'payable', child: Text('Borrow Money')),
+        PopupMenuItem(value: 'receivable', child: Text('Lend Money')),
       ],
     );
 

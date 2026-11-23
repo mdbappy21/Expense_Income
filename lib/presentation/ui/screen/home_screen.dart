@@ -19,9 +19,7 @@ class HomeScreen extends StatelessWidget {
       builder: (controller) {
         if (controller.isLoading) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -33,10 +31,7 @@ class HomeScreen extends StatelessWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    _buildWelcomeNotification(
-                      size,
-                      controller.welcomeMessage,
-                    ),
+                    _buildWelcomeNotification(size, controller.welcomeMessage),
                     _buildSummary(
                       income: controller.income,
                       expense: controller.expense,
@@ -62,7 +57,9 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Expanded(child: _buildHistory(controller.transactions)),
+                Expanded(
+                  child: _buildHistory(context, controller.transactions),
+                ),
               ],
             ),
           ),
@@ -71,29 +68,31 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHistory(List<Map<String, dynamic>> transactions,) {
+  Widget _buildHistory(
+    BuildContext context,
+    List<Map<String, dynamic>> transactions,
+  ) {
     if (transactions.isEmpty) {
-      return const Center(
-        child: Text('No transaction found'),
-      );
+      return const Center(child: Text('No transaction found'));
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ListView.builder(
         padding: EdgeInsets.zero,
         itemCount: transactions.length,
         itemBuilder: (context, index) {
           final item = transactions[index];
-          return _buildTransactionItem(item);
+          return _buildTransactionItem(context, item);
         },
       ),
     );
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> item) {
+  Widget _buildTransactionItem(
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) {
     final type = item['type'];
     final amount = (item['amount'] as num).toDouble();
     final date = DateTime.parse(item['date']);
@@ -127,29 +126,21 @@ class HomeScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Get.to(
-              () => TransactionDetailScreen(
-            id: item['id'],
-            type: item['type'],
-          ),
+          () => TransactionDetailScreen(id: item['id'], type: item['type']),
         );
       },
       child: Card(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: color.withAlpha(40),
             child: Icon(icon, color: color),
           ),
           title: Text(item['title'] ?? ''),
-          subtitle: Text(
-            DateFormat('dd MMM yyyy').format(date),
-          ),
+          subtitle: Text(DateFormat('dd MMM yyyy').format(date)),
           trailing: Text(
             '$sign${amount.toStringAsFixed(2)} TK',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -168,10 +159,7 @@ class HomeScreen extends StatelessWidget {
       right: 24,
       bottom: -90,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.themeColor,
           borderRadius: BorderRadius.circular(24),
@@ -222,8 +210,7 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment:
-          MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildAmount(
               'Income',
@@ -265,19 +252,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeNotification(
-      Size size,
-      String welcomeMessage,
-      ) {
+  Widget _buildWelcomeNotification(Size size, String welcomeMessage) {
     return Container(
       width: double.infinity,
       height: size.height * .30,
-      padding: const EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 48,
-        bottom: 100,
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 48, bottom: 100),
       decoration: const BoxDecoration(
         color: AppColors.themeColor,
         borderRadius: BorderRadius.only(
@@ -286,42 +265,47 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisAlignment:
-        MainAxisAlignment.spaceBetween,
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-        children: [
-          _buildWelcomeText(welcomeMessage),
-          _buildNotification(),
-        ],
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_buildWelcomeText(welcomeMessage), _buildNotification()],
       ),
     );
   }
 
   Widget _buildWelcomeText(String welcomeMessage) {
-    return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: .start,
       children: [
-        Text(
-          welcomeMessage,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 6),
         GetBuilder<ProfileController>(
           builder: (controller) {
-            return Text(
-              controller.userName,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white
-              ),
+            return CircleAvatar(
+              radius: 24,
+              backgroundImage: controller.profileImage,
             );
           },
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              welcomeMessage,
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            GetBuilder<ProfileController>(
+              builder: (controller) {
+                return Text(
+                  controller.userName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -341,8 +325,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white.withAlpha(48),
-                  borderRadius:
-                  BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 child: const Icon(
                   Icons.notifications_none,
@@ -355,26 +338,22 @@ class HomeScreen extends StatelessWidget {
                   right: -2,
                   top: -2,
                   child: Container(
-                    padding:
-                    const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 2,
                     ),
-                    decoration:
-                    const BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       controller.pendingCount > 99
                           ? '99+'
-                          : controller.pendingCount
-                          .toString(),
+                          : controller.pendingCount.toString(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
-                        fontWeight:
-                        FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -387,12 +366,12 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildAmount(
-      String category,
-      double amount,
-      Color iconColor,
-      Color shadeColor,
-      IconData icon,
-      ) {
+    String category,
+    double amount,
+    Color iconColor,
+    Color shadeColor,
+    IconData icon,
+  ) {
     return Row(
       children: [
         Container(
@@ -402,23 +381,15 @@ class HomeScreen extends StatelessWidget {
             color: shadeColor,
             borderRadius: BorderRadius.circular(28),
           ),
-          child: Icon(
-            icon,
-            color: iconColor,
-            size: 12,
-          ),
+          child: Icon(icon, color: iconColor, size: 12),
         ),
         const SizedBox(width: 8),
         Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               category,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(

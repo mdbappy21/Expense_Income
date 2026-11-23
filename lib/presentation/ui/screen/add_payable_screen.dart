@@ -55,7 +55,7 @@ class AddPayableScreen extends StatelessWidget {
           ),
           const Expanded(
             child: Text(
-              'Add Payable',
+              'Borrow Money',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
@@ -78,7 +78,7 @@ class AddPayableScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Form(
@@ -130,7 +130,8 @@ class AddPayableScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => controller.pickPayableDate(context),
                   child: Text(
-                    controller.payableDate == null ? 'Payable Date'
+                    controller.payableDate == null
+                        ? 'Getting date'
                         : DateFormat(
                             'dd MMM yyyy',
                           ).format(controller.payableDate!),
@@ -146,7 +147,7 @@ class AddPayableScreen extends StatelessWidget {
                   onPressed: () => controller.pickReturnDate(context),
                   child: Text(
                     controller.returnDate == null
-                        ? 'Expected Payment Date'
+                        ? 'Expected return Date'
                         : DateFormat(
                             'dd MMM yyyy',
                           ).format(controller.returnDate!),
@@ -180,7 +181,7 @@ class AddPayableScreen extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Add Payable'),
+                      : const Text('Add Borrow'),
                 ),
               ),
             ],

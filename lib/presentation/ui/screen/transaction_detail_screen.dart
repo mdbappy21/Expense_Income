@@ -1,7 +1,6 @@
 import 'package:expense_income/data/database_helper.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 class TransactionDetailScreen extends StatefulWidget {
@@ -19,8 +18,7 @@ class TransactionDetailScreen extends StatefulWidget {
       _TransactionDetailScreenState();
 }
 
-class _TransactionDetailScreenState
-    extends State<TransactionDetailScreen> {
+class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
   Map<String, dynamic>? transaction;
 
   bool isLoading = true;
@@ -33,9 +31,7 @@ class _TransactionDetailScreenState
 
   Future<void> _loadTransaction() async {
     try {
-      transaction =
-      await DatabaseHelper.instance
-          .getTransactionDetail(
+      transaction = await DatabaseHelper.instance.getTransactionDetail(
         type: widget.type,
         id: widget.id,
       );
@@ -93,151 +89,94 @@ class _TransactionDetailScreenState
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : transaction == null
-          ? const Center(
-        child: Text(
-          'Transaction not found',
-        ),
-      )
+          ? const Center(child: Text('Transaction not found'))
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Card(
-          elevation: 3,
-          child: Padding(
-            padding:
-            const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    padding:
-                    const EdgeInsets
-                        .symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration:
-                    BoxDecoration(
-                      color: _typeColor()
-                          .withAlpha(
-                        40,
+              padding: const EdgeInsets.all(16),
+              child: Card(
+                color: Theme.of(context).colorScheme.surfaceContainer,
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _typeColor().withAlpha(40),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            widget.type.toUpperCase(),
+                            style: TextStyle(
+                              color: _typeColor(),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                      borderRadius:
-                      BorderRadius
-                          .circular(
-                        20,
+
+                      const SizedBox(height: 24),
+
+                      _buildRow(
+                        'Title',
+                        transaction!['name'] ??
+                            transaction!['category'] ??
+                            transaction!['source'] ??
+                            '-',
                       ),
-                    ),
-                    child: Text(
-                      widget.type
-                          .toUpperCase(),
-                      style:
-                      TextStyle(
-                        color:
-                        _typeColor(),
-                        fontWeight:
-                        FontWeight
-                            .bold,
+
+                      _buildRow('Amount', '${transaction!['amount']} TK'),
+
+                      _buildDateRow(),
+
+                      _buildRow(
+                        'Description',
+                        transaction!['description']?.toString() ?? '-',
                       ),
-                    ),
+
+                      if (widget.type == 'payable')
+                        _buildRow(
+                          'Status',
+                          transaction!['is_returned'] == 1 ? 'Paid' : 'Pending',
+                        ),
+
+                      if (widget.type == 'receivable')
+                        _buildRow(
+                          'Status',
+                          transaction!['is_received'] == 1
+                              ? 'Received'
+                              : 'Pending',
+                        ),
+
+                      if (widget.type == 'payable' &&
+                          transaction!['return_date'] != null)
+                        _buildRow(
+                          'Return Date',
+                          DateFormat(
+                            'dd MMM yyyy',
+                          ).format(DateTime.parse(transaction!['return_date'])),
+                        ),
+
+                      if (widget.type == 'receivable' &&
+                          transaction!['expected_date'] != null)
+                        _buildRow(
+                          'Expected Date',
+                          DateFormat('dd MMM yyyy').format(
+                            DateTime.parse(transaction!['expected_date']),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(
-                  height: 24,
-                ),
-
-                _buildRow(
-                  'Title',
-                  transaction![
-                  'name'] ??
-                      transaction![
-                      'category'] ??
-                      transaction![
-                      'source'] ??
-                      '-',
-                ),
-
-                _buildRow(
-                  'Amount',
-                  '${transaction!['amount']} TK',
-                ),
-
-                _buildDateRow(),
-
-                _buildRow(
-                  'Description',
-                  transaction![
-                  'description']
-                      ?.toString() ??
-                      '-',
-                ),
-
-                if (widget.type ==
-                    'payable')
-                  _buildRow(
-                    'Status',
-                    transaction![
-                    'is_returned'] ==
-                        1
-                        ? 'Paid'
-                        : 'Pending',
-                  ),
-
-                if (widget.type ==
-                    'receivable')
-                  _buildRow(
-                    'Status',
-                    transaction![
-                    'is_received'] ==
-                        1
-                        ? 'Received'
-                        : 'Pending',
-                  ),
-
-                if (widget.type ==
-                    'payable' &&
-                    transaction![
-                    'return_date'] !=
-                        null)
-                  _buildRow(
-                    'Return Date',
-                    DateFormat(
-                      'dd MMM yyyy',
-                    ).format(
-                      DateTime.parse(
-                        transaction![
-                        'return_date'],
-                      ),
-                    ),
-                  ),
-
-                if (widget.type ==
-                    'receivable' &&
-                    transaction![
-                    'expected_date'] !=
-                        null)
-                  _buildRow(
-                    'Expected Date',
-                    DateFormat(
-                      'dd MMM yyyy',
-                    ).format(
-                      DateTime.parse(
-                        transaction![
-                        'expected_date'],
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -266,38 +205,24 @@ class _TransactionDetailScreenState
 
     return _buildRow(
       'Date',
-      DateFormat(
-        'dd MMM yyyy',
-      ).format(
-        DateTime.parse(date),
-      ),
+      DateFormat('dd MMM yyyy').format(DateTime.parse(date)),
     );
   }
 
-  Widget _buildRow(
-      String title,
-      String value,
-      ) {
+  Widget _buildRow(String title, String value) {
     return Padding(
-      padding:
-      const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 120,
             child: Text(
               '$title :',
-              style: const TextStyle(
-                fontWeight:
-                FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

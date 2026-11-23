@@ -3,50 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class NoteListController extends GetxController {
-  final TextEditingController titleController =
-  TextEditingController();
+  final TextEditingController titleController = TextEditingController();
 
-  final List<TextEditingController> items = [
-    TextEditingController(),
-  ];
+  final List<TextEditingController> items = [TextEditingController()];
 
-  final List<bool> checked = [
-    false,
-  ];
+  final List<bool> checked = [false];
 
   bool isLoading = false;
 
   Future<void> loadNote(int? noteId) async {
     if (noteId == null) return;
 
-    final note =
-    await DatabaseHelper.instance.getNoteById(
-      noteId,
-    );
+    final note = await DatabaseHelper.instance.getNoteById(noteId);
 
-    final noteItems =
-    await DatabaseHelper.instance.getNoteItems(
-      noteId,
-    );
+    final noteItems = await DatabaseHelper.instance.getNoteItems(noteId);
 
     if (note == null) return;
 
-    titleController.text =
-        note['title'] ?? '';
+    titleController.text = note['title'] ?? '';
 
     items.clear();
     checked.clear();
 
     for (final item in noteItems) {
-      items.add(
-        TextEditingController(
-          text: item['text'],
-        ),
-      );
+      items.add(TextEditingController(text: item['text']));
 
-      checked.add(
-        item['is_checked'] == 1,
-      );
+      checked.add(item['is_checked'] == 1);
     }
 
     if (items.isEmpty) {
@@ -78,40 +60,26 @@ class NoteListController extends GetxController {
     update();
   }
 
-  void toggleItem(
-      int index,
-      bool value,
-      ) {
+  void toggleItem(int index, bool value) {
     checked[index] = value;
     update();
   }
 
-  Future<void> saveNote(
-      int? noteId,
-      ) async {
-    final title =
-    titleController.text.trim();
+  Future<void> saveNote(int? noteId) async {
+    final title = titleController.text.trim();
 
-    final data =
-    <Map<String, dynamic>>[];
+    final data = <Map<String, dynamic>>[];
 
     for (int i = 0; i < items.length; i++) {
-      final text =
-      items[i].text.trim();
+      final text = items[i].text.trim();
 
       if (text.isNotEmpty) {
-        data.add({
-          'text': text,
-          'is_checked': checked[i],
-        });
+        data.add({'text': text, 'is_checked': checked[i]});
       }
     }
 
     if (title.isEmpty && data.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please write something',
-      );
+      Get.snackbar('Error', 'Please write something');
       return;
     }
 
@@ -120,17 +88,13 @@ class NoteListController extends GetxController {
 
     if (noteId == null) {
       await DatabaseHelper.instance.insertListNote(
-        title: title.isEmpty
-            ? 'Untitled'
-            : title,
+        title: title.isEmpty ? 'Untitled' : title,
         items: data,
       );
     } else {
       await DatabaseHelper.instance.updateListNote(
         noteId: noteId,
-        title: title.isEmpty
-            ? 'Untitled'
-            : title,
+        title: title.isEmpty ? 'Untitled' : title,
         items: data,
       );
     }

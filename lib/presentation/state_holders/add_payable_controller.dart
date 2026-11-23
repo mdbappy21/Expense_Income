@@ -1,4 +1,5 @@
 import 'package:expense_income/data/database_helper.dart';
+import 'package:expense_income/presentation/state_holders/notification_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -90,10 +91,25 @@ class AddPayableController extends GetxController {
       await DatabaseHelper.instance.insertNotification(
         referenceId: payableId,
         title: 'Payment Reminder',
-        body:
-        'Pay ${amountTEController.text} TK to ${nameTEController.text}',
+        body: 'Pay ${amountTEController.text} TK to ${nameTEController.text}',
         type: 'payable',
       );
+
+      // The expected payment/return date is the actual payable due date.
+      // Failure to schedule a phone notification must not discard the record.
+      try {
+        await Get.find<NotificationController>().schedulePayableReminder(
+          payableId: payableId,
+          name: nameTEController.text.trim(),
+          amount: double.parse(amountTEController.text.trim()),
+          dueDate: returnDate!,
+        );
+      } catch (_) {
+        Get.snackbar(
+          'Reminder not scheduled',
+          'The payable was saved, but its phone reminder could not be scheduled.',
+        );
+      }
 
       isLoading = false;
       update();

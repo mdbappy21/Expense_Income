@@ -6,10 +6,7 @@ import 'package:get/get.dart';
 class NoteAddTextScreen extends StatelessWidget {
   final int? noteId;
 
-  const NoteAddTextScreen({
-    super.key,
-    this.noteId,
-  });
+  const NoteAddTextScreen({super.key, this.noteId});
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +19,7 @@ class NoteAddTextScreen extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: AppColors.themeColor,
             centerTitle: true,
-            title: Text(
-              noteId == null
-                  ? 'Add Text'
-                  : 'Edit Text',
-            ),
+            title: Text(noteId == null ? 'Add Text' : 'Edit Text'),
             actions: [
               IconButton(
                 onPressed: controller.isLoading
@@ -34,12 +27,10 @@ class NoteAddTextScreen extends StatelessWidget {
                     : () => controller.saveNote(noteId),
                 icon: controller.isLoading
                     ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
-                )
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.save),
               ),
               const SizedBox(width: 8),
@@ -52,19 +43,14 @@ class NoteAddTextScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     TextField(
-                      controller:
-                      controller.titleTEController,
+                      controller: controller.titleTEController,
                       decoration: const InputDecoration(
                         hintText: 'Title',
-                        enabledBorder:
-                        OutlineInputBorder(
-                          borderSide:
-                          BorderSide.none,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide.none,
                         ),
-                        focusedBorder:
-                        OutlineInputBorder(
-                          borderSide:
-                          BorderSide.none,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),
@@ -72,20 +58,15 @@ class NoteAddTextScreen extends StatelessWidget {
                     const SizedBox(height: 8),
 
                     TextField(
-                      controller:
-                      controller.noteTEController,
+                      controller: controller.noteTEController,
                       maxLines: 100,
                       decoration: const InputDecoration(
                         hintText: 'Note',
-                        enabledBorder:
-                        OutlineInputBorder(
-                          borderSide:
-                          BorderSide.none,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide.none,
                         ),
-                        focusedBorder:
-                        OutlineInputBorder(
-                          borderSide:
-                          BorderSide.none,
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),

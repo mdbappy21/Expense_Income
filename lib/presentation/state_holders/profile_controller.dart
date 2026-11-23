@@ -24,15 +24,11 @@ class ProfileController extends GetxController {
       isLoading = true;
       update();
 
-      final prefs =
-      await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-      userName =
-          prefs.getString('profile_name') ??
-              'Dear User';
+      userName = prefs.getString('profile_name') ?? 'Dear User';
 
-      profileImagePath =
-          prefs.getString('profile_image');
+      profileImagePath = prefs.getString('profile_image');
     } finally {
       isLoading = false;
       update();
@@ -40,40 +36,28 @@ class ProfileController extends GetxController {
   }
 
   Future<void> updateName() async {
-    final controller =
-    TextEditingController(text: userName);
+    final controller = TextEditingController(text: userName);
 
     await Get.dialog(
       AlertDialog(
         title: const Text('Edit Name'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Enter your name',
-          ),
+          decoration: const InputDecoration(hintText: 'Enter your name'),
         ),
         actions: [
-          TextButton(
-            onPressed: Get.back,
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: Get.back, child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              final name =
-              controller.text.trim();
+              final name = controller.text.trim();
 
               if (name.isEmpty) {
                 return;
               }
 
-              final prefs =
-              await SharedPreferences
-                  .getInstance();
+              final prefs = await SharedPreferences.getInstance();
 
-              await prefs.setString(
-                'profile_name',
-                name,
-              );
+              await prefs.setString('profile_name', name);
 
               userName = name;
 
@@ -92,8 +76,7 @@ class ProfileController extends GetxController {
     try {
       final picker = ImagePicker();
 
-      final image =
-      await picker.pickImage(
+      final image = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
@@ -104,38 +87,31 @@ class ProfileController extends GetxController {
 
       final prefs = await SharedPreferences.getInstance();
 
-      await prefs.setString(
-        'profile_image',
-        image.path,
-      );
+      await prefs.setString('profile_image', image.path);
 
       profileImagePath = image.path;
 
       update();
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        e.toString(),
-      );
+      Get.snackbar('Error', e.toString());
     }
   }
 
   Future<void> inviteFriend() async {
-    await Share.share(
-      'Track your income, expenses, payable and receivable money easily with Expense & Income Tracker.',
+    await SharePlus.instance.share(
+      ShareParams(
+        text:
+            '''Track your income, expenses, payable and receivable money easily with Expense & Income Tracker.
+        Download now: https://play.google.com/store/apps/details?id=com.yourcompany.expense_tracker''',
+      ),
     );
   }
 
   ImageProvider get profileImage {
-    if (profileImagePath != null &&
-        File(profileImagePath!).existsSync()) {
-      return FileImage(
-        File(profileImagePath!),
-      );
+    if (profileImagePath != null && File(profileImagePath!).existsSync()) {
+      return FileImage(File(profileImagePath!));
     }
 
-    return const AssetImage(
-      'assets/images/img.png',
-    );
+    return const AssetImage('assets/images/img.png');
   }
 }

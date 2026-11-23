@@ -20,15 +20,11 @@ class NoteScreen extends StatelessWidget {
         child: GetBuilder<NoteController>(
           builder: (controller) {
             if (controller.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             if (controller.notes.isEmpty) {
-              return const Center(
-                child: Text('No notes found'),
-              );
+              return const Center(child: Text('No notes found'));
             }
 
             return RefreshIndicator(
@@ -43,22 +39,18 @@ class NoteScreen extends StatelessWidget {
                     onTap: () async {
                       if (note['type'] == 'list') {
                         await Get.to(
-                              () => NoteAddListScreen(
-                            noteId: note['id'],
-                          ),
+                          () => NoteAddListScreen(noteId: note['id']),
                         );
                       } else {
                         await Get.to(
-                              () => NoteAddTextScreen(
-                            noteId: note['id'],
-                          ),
+                          () => NoteAddTextScreen(noteId: note['id']),
                         );
                       }
 
                       controller.loadNotes();
                     },
                     child: Card(
-                      color: Colors.grey.shade200,
+                      color: Theme.of(context).colorScheme.surfaceContainer,
                       elevation: 3,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -68,16 +60,12 @@ class NoteScreen extends StatelessWidget {
                               child: Text(
                                 note['title'] ?? '',
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                ),
+                                style: const TextStyle(fontSize: 16),
                               ),
                             ),
                             IconButton(
                               onPressed: () async {
-                                await controller.deleteNote(
-                                  note['id'],
-                                );
+                                await controller.deleteNote(note['id']);
                               },
                               icon: Icon(
                                 Icons.delete,
@@ -99,10 +87,7 @@ class NoteScreen extends StatelessWidget {
         heroTag: 'note_fab',
         shape: const CircleBorder(),
         backgroundColor: Colors.teal,
-        child: const Icon(
-          Icons.edit,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.edit, color: Colors.white),
         onPressed: () => _onTapFAB(context),
       ),
     );
@@ -114,23 +99,15 @@ class NoteScreen extends StatelessWidget {
     final selected = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(size.width, size.height * .685, 0, 0),
-      color: Colors.grey.shade200,
+      color: Theme.of(context).colorScheme.surfaceContainer,
       items: const [
-        PopupMenuItem(
-          value: 'list',
-          child: Text('List'),
-        ),
-        PopupMenuItem(
-          value: 'text',
-          child: Text('Text'),
-        ),
+        PopupMenuItem(value: 'list', child: Text('List')),
+        PopupMenuItem(value: 'text', child: Text('Text')),
       ],
     );
 
     if (selected == 'list') {
-      final result = await Get.to(
-            () => const NoteAddListScreen(),
-      );
+      final result = await Get.to(() => const NoteAddListScreen());
 
       if (result == true) {
         Get.find<NoteController>().loadNotes();
@@ -138,9 +115,7 @@ class NoteScreen extends StatelessWidget {
     }
 
     if (selected == 'text') {
-      final result = await Get.to(
-            () => const NoteAddTextScreen(),
-      );
+      final result = await Get.to(() => const NoteAddTextScreen());
 
       if (result == true) {
         Get.find<NoteController>().loadNotes();

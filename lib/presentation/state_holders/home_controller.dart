@@ -31,10 +31,9 @@ class HomeController extends GetxController {
 
       receivable = await DatabaseHelper.instance.getReceivableTotal();
 
-      transactions =
-      await DatabaseHelper.instance.getAllTransactions();
+      transactions = await DatabaseHelper.instance.getAllTransactions();
 
-      balance = income + receivable - expense - payable;
+      balance = income - receivable - expense + payable;
     } finally {
       isLoading = false;
       update();

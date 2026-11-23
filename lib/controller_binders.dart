@@ -14,14 +14,23 @@ class ControllerBinder extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<AddIncomeController>(() => AddIncomeController(), fenix: true);
-    Get.lazyPut<AddExpenseController>(() => AddExpenseController(), fenix: true,);
-    Get.lazyPut<AddPayableController>(() => AddPayableController(), fenix: true,);
-    Get.lazyPut<AddReceivableController>(() => AddReceivableController(), fenix: true,);
+    Get.lazyPut<AddExpenseController>(
+      () => AddExpenseController(),
+      fenix: true,
+    );
+    Get.lazyPut<AddPayableController>(
+      () => AddPayableController(),
+      fenix: true,
+    );
+    Get.lazyPut<AddReceivableController>(
+      () => AddReceivableController(),
+      fenix: true,
+    );
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
     Get.lazyPut<NoteController>(() => NoteController(), fenix: true);
     Get.lazyPut<NoteTextController>(() => NoteTextController(), fenix: true);
     Get.lazyPut<NoteListController>(() => NoteListController(), fenix: true);
-    Get.lazyPut<ProfileController>(() => ProfileController(), fenix: true,);
-    Get.lazyPut<NotificationController>(() => NotificationController(), fenix: true,);
+    Get.lazyPut<ProfileController>(() => ProfileController(), fenix: true);
+    Get.put<NotificationController>(NotificationController(), permanent: true);
   }
 }

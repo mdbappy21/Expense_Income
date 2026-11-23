@@ -21,11 +21,22 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _onCreate,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE notifications ADD COLUMN is_read INTEGER NOT NULL DEFAULT 0',
+          );
+        }
+
+        if (oldVersion < 3) {
+          await _createPaymentHistoryTable(db);
+        }
+      },
     );
   }
 
@@ -104,10 +115,31 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         body TEXT NOT NULL,
         type TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        is_read INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    await _createPaymentHistoryTable(db);
+  }
+
+  Future<void> _createPaymentHistoryTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE payment_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference_type TEXT NOT NULL,
+        reference_id INTEGER NOT NULL,
+        amount REAL NOT NULL CHECK(amount > 0),
+        payment_date TEXT NOT NULL,
+        note TEXT,
         created_at TEXT NOT NULL
       )
     ''');
 
+    await db.execute('''
+      CREATE INDEX idx_payment_history_reference
+      ON payment_history(reference_type, reference_id)
+    ''');
   }
 
   // -------------------- Income --------------------
@@ -208,7 +240,19 @@ class DatabaseHelper {
 
   Future<int> deletePayable(int id) async {
     final db = await database;
-    return await db.delete('payables', where: 'id = ?', whereArgs: [id]);
+    return db.transaction((txn) async {
+      await txn.delete(
+        'payment_history',
+        where: 'reference_type = ? AND reference_id = ?',
+        whereArgs: ['payable', id],
+      );
+      await txn.delete(
+        'notifications',
+        where: 'reference_id = ? AND type = ?',
+        whereArgs: [id, 'payable'],
+      );
+      return txn.delete('payables', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   //----------------------receivable--------------------
@@ -250,19 +294,353 @@ class DatabaseHelper {
   Future<int> deleteReceivable(int id) async {
     final db = await database;
 
-    return await db.delete('receivables', where: 'id = ?', whereArgs: [id]);
+    return db.transaction((txn) async {
+      await txn.delete(
+        'payment_history',
+        where: 'reference_type = ? AND reference_id = ?',
+        whereArgs: ['receivable', id],
+      );
+      await txn.delete(
+        'notifications',
+        where: 'reference_id = ? AND type = ?',
+        whereArgs: [id, 'receivable'],
+      );
+      return txn.delete('receivables', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   Future<double> getReceivableTotal() async {
     final db = await database;
-
     final result = await db.rawQuery('''
-    SELECT SUM(amount) as total
-    FROM receivables
-    WHERE is_received = 0
+      SELECT COALESCE(SUM(
+        MAX(0, r.amount - COALESCE((
+          SELECT SUM(ph.amount)
+          FROM payment_history ph
+          WHERE ph.reference_type = 'receivable'
+            AND ph.reference_id = r.id
+        ), 0))
+      ), 0) AS total
+      FROM receivables r
+      WHERE r.is_received = 0
     ''');
+    return (result.first['total'] as num).toDouble();
+  }
 
-    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  // -------------------- Payment history --------------------
+
+  Future<double> getPayablePaidTotal(int payableId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      '''
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM payment_history
+      WHERE reference_type = ? AND reference_id = ?
+      ''',
+      ['payable', payableId],
+    );
+    return (result.first['total'] as num).toDouble();
+  }
+
+  Future<double> getReceivableReceivedTotal(int receivableId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      '''
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM payment_history
+      WHERE reference_type = ? AND reference_id = ?
+      ''',
+      ['receivable', receivableId],
+    );
+    return (result.first['total'] as num).toDouble();
+  }
+
+  Future<double> getPayableRemainingBalance(int payableId) async {
+    final db = await database;
+    final rows = await db.query(
+      'payables',
+      where: 'id = ?',
+      whereArgs: [payableId],
+      limit: 1,
+    );
+    if (rows.isEmpty || rows.first['is_returned'] == 1) return 0;
+
+    final original = (rows.first['amount'] as num).toDouble();
+    final paid = await getPayablePaidTotal(payableId);
+    return (original - paid).clamp(0.0, original).toDouble();
+  }
+
+  Future<double> getReceivableRemainingBalance(int receivableId) async {
+    final db = await database;
+    final rows = await db.query(
+      'receivables',
+      where: 'id = ?',
+      whereArgs: [receivableId],
+      limit: 1,
+    );
+    if (rows.isEmpty || rows.first['is_received'] == 1) return 0;
+
+    final original = (rows.first['amount'] as num).toDouble();
+    final received = await getReceivableReceivedTotal(receivableId);
+    return (original - received).clamp(0.0, original).toDouble();
+  }
+
+  Future<List<Map<String, dynamic>>> getPayablePaymentHistory(
+      int payableId,
+      ) async {
+    final db = await database;
+    return db.query(
+      'payment_history',
+      where: 'reference_type = ? AND reference_id = ?',
+      whereArgs: ['payable', payableId],
+      orderBy: 'payment_date DESC, id DESC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getReceivablePaymentHistory(
+      int receivableId,
+      ) async {
+    final db = await database;
+    return db.query(
+      'payment_history',
+      where: 'reference_type = ? AND reference_id = ?',
+      whereArgs: ['receivable', receivableId],
+      orderBy: 'payment_date DESC, id DESC',
+    );
+  }
+
+  /// Updates the in-app notification for an outstanding record without
+  /// changing its read/unread state or original creation timestamp.
+  Future<void> _updateOutstandingNotification(
+      DatabaseExecutor txn, {
+        required int referenceId,
+        required String type,
+        required String body,
+      }) async {
+    await txn.update(
+      'notifications',
+      {'body': body},
+      where: 'reference_id = ? AND type = ?',
+      whereArgs: [referenceId, type],
+    );
+  }
+
+  String _formatNotificationAmount(double amount) =>
+      '৳${amount.toStringAsFixed(2)}';
+
+  /// Records one payment toward a payable and creates the matching expense.
+  /// Returns the outstanding balance after this payment.
+  Future<double> recordPayablePayment({
+    required int payableId,
+    required double amount,
+    required DateTime paymentDate,
+    String? note,
+    DateTime? nextReturnDate,
+  }) async {
+    if (!amount.isFinite || amount <= 0) {
+      throw ArgumentError.value(amount, 'amount', 'Must be greater than zero.');
+    }
+
+    final db = await database;
+    return db.transaction((txn) async {
+      final rows = await txn.query(
+        'payables',
+        where: 'id = ?',
+        whereArgs: [payableId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Payable not found.');
+
+      final payable = rows.first;
+      if (payable['is_returned'] == 1) {
+        throw StateError('This payable has already been settled.');
+      }
+
+      final original = (payable['amount'] as num).toDouble();
+      final paidRows = await txn.rawQuery(
+        '''
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM payment_history
+        WHERE reference_type = ? AND reference_id = ?
+        ''',
+        ['payable', payableId],
+      );
+      final paid = (paidRows.first['total'] as num).toDouble();
+      final remaining = (original - paid).clamp(0.0, original).toDouble();
+
+      if (amount > remaining + 0.000001) {
+        throw StateError(
+          'Payment exceeds the remaining balance of $remaining.',
+        );
+      }
+
+      final now = DateTime.now().toIso8601String();
+      await txn.insert('payment_history', {
+        'reference_type': 'payable',
+        'reference_id': payableId,
+        'amount': amount,
+        'payment_date': paymentDate.toIso8601String(),
+        'note': note?.trim().isEmpty == true ? null : note?.trim(),
+        'created_at': now,
+      });
+
+      await txn.insert('expenses', {
+        'name': 'Payment to ${payable['name']}',
+        'amount': amount,
+        'date': paymentDate.toIso8601String(),
+        'description': note?.trim().isNotEmpty == true
+            ? note!.trim()
+            : payable['description'],
+        'created_at': now,
+      });
+
+      final newRemaining = (remaining - amount).clamp(0.0, original).toDouble();
+      final isSettled = newRemaining <= 0.000001;
+
+      final updateValues = <String, Object?>{
+        'is_returned': isSettled ? 1 : 0,
+      };
+      if (!isSettled && nextReturnDate != null) {
+        updateValues['return_date'] = nextReturnDate.toIso8601String();
+      }
+
+      await txn.update(
+        'payables',
+        updateValues,
+        where: 'id = ?',
+        whereArgs: [payableId],
+      );
+
+      if (isSettled) {
+        await txn.delete(
+          'notifications',
+          where: 'reference_id = ? AND type = ?',
+          whereArgs: [payableId, 'payable'],
+        );
+      } else {
+        final updatedDueDate = nextReturnDate ??
+            (payable['return_date'] == null
+                ? null
+                : DateTime.tryParse(payable['return_date'].toString()));
+        final dateText = updatedDueDate == null
+            ? ''
+            : ' Next due date: ${updatedDueDate.toIso8601String().split('T').first}.';
+        await _updateOutstandingNotification(
+          txn,
+          referenceId: payableId,
+          type: 'payable',
+          body: 'Remaining amount: ${_formatNotificationAmount(newRemaining)}.$dateText',
+        );
+      }
+
+      return newRemaining;
+    });
+  }
+
+  /// Records one collection toward a receivable and creates the matching income.
+  /// Returns the outstanding balance after this collection.
+  Future<double> recordReceivablePayment({
+    required int receivableId,
+    required double amount,
+    required DateTime paymentDate,
+    String? note,
+    DateTime? nextExpectedDate,
+  }) async {
+    if (!amount.isFinite || amount <= 0) {
+      throw ArgumentError.value(amount, 'amount', 'Must be greater than zero.');
+    }
+
+    final db = await database;
+    return db.transaction((txn) async {
+      final rows = await txn.query(
+        'receivables',
+        where: 'id = ?',
+        whereArgs: [receivableId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Receivable not found.');
+
+      final receivable = rows.first;
+      if (receivable['is_received'] == 1) {
+        throw StateError('This receivable has already been settled.');
+      }
+
+      final original = (receivable['amount'] as num).toDouble();
+      final receivedRows = await txn.rawQuery(
+        '''
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM payment_history
+        WHERE reference_type = ? AND reference_id = ?
+        ''',
+        ['receivable', receivableId],
+      );
+      final received = (receivedRows.first['total'] as num).toDouble();
+      final remaining = (original - received).clamp(0.0, original).toDouble();
+
+      if (amount > remaining + 0.000001) {
+        throw StateError(
+          'Collection exceeds the remaining balance of $remaining.',
+        );
+      }
+
+      final now = DateTime.now().toIso8601String();
+      await txn.insert('payment_history', {
+        'reference_type': 'receivable',
+        'reference_id': receivableId,
+        'amount': amount,
+        'payment_date': paymentDate.toIso8601String(),
+        'note': note?.trim().isEmpty == true ? null : note?.trim(),
+        'created_at': now,
+      });
+
+      await txn.insert('incomes', {
+        'category': 'Received from ${receivable['source']}',
+        'amount': amount,
+        'date': paymentDate.toIso8601String(),
+        'description': note?.trim().isNotEmpty == true
+            ? note!.trim()
+            : receivable['description'],
+        'created_at': now,
+      });
+
+      final newRemaining = (remaining - amount).clamp(0.0, original).toDouble();
+      final isSettled = newRemaining <= 0.000001;
+
+      final updateValues = <String, Object?>{
+        'is_received': isSettled ? 1 : 0,
+      };
+      if (!isSettled && nextExpectedDate != null) {
+        updateValues['expected_date'] = nextExpectedDate.toIso8601String();
+      }
+
+      await txn.update(
+        'receivables',
+        updateValues,
+        where: 'id = ?',
+        whereArgs: [receivableId],
+      );
+
+      if (isSettled) {
+        await txn.delete(
+          'notifications',
+          where: 'reference_id = ? AND type = ?',
+          whereArgs: [receivableId, 'receivable'],
+        );
+      } else {
+        final updatedExpectedDate = nextExpectedDate ??
+            DateTime.tryParse(receivable['expected_date'].toString());
+        final dateText = updatedExpectedDate == null
+            ? ''
+            : ' Expected date: ${updatedExpectedDate.toIso8601String().split('T').first}.';
+        await _updateOutstandingNotification(
+          txn,
+          referenceId: receivableId,
+          type: 'receivable',
+          body: 'Remaining amount: ${_formatNotificationAmount(newRemaining)}.$dateText',
+        );
+      }
+
+      return newRemaining;
+    });
   }
 
   // -------------------- Text Note --------------------
@@ -348,10 +726,19 @@ class DatabaseHelper {
 
   Future<double> getPayableTotal() async {
     final db = await database;
-    final result = await db.rawQuery(
-      'SELECT SUM(amount) as total FROM payables WHERE is_returned = 0',
-    );
-    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+    final result = await db.rawQuery('''
+      SELECT COALESCE(SUM(
+        MAX(0, p.amount - COALESCE((
+          SELECT SUM(ph.amount)
+          FROM payment_history ph
+          WHERE ph.reference_type = 'payable'
+            AND ph.reference_id = p.id
+        ), 0))
+      ), 0) AS total
+      FROM payables p
+      WHERE p.is_returned = 0
+    ''');
+    return (result.first['total'] as num).toDouble();
   }
 
   Future<List<Map<String, dynamic>>> getAllTransactions() async {
@@ -395,7 +782,10 @@ class DatabaseHelper {
     return transactions;
   }
 
-  Future<List<Map<String, dynamic>>> getTransactionsByTypeAndPeriod({required String type, required String period,}) async {
+  Future<List<Map<String, dynamic>>> getTransactionsByTypeAndPeriod({
+    required String type,
+    required String period,
+  }) async {
     final db = await database;
 
     final now = DateTime.now();
@@ -506,6 +896,7 @@ class DatabaseHelper {
         return null;
     }
   }
+
   //------------------note---------------------------------
   Future<Map<String, dynamic>?> getNoteById(int id) async {
     final db = await database;
@@ -578,37 +969,60 @@ class DatabaseHelper {
   }) async {
     final db = await database;
 
-    return await db.insert(
-      'notifications',
-      {
-        'reference_id': referenceId,
-        'title': title,
-        'body': body,
-        'type': type,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-    );
+    return await db.insert('notifications', {
+      'reference_id': referenceId,
+      'title': title,
+      'body': body,
+      'type': type,
+      'created_at': DateTime.now().toIso8601String(),
+      'is_read': 0,
+    });
   }
 
   Future<List<Map<String, dynamic>>> getNotifications() async {
     final db = await database;
 
-    return await db.query(
+    return await db.query('notifications', orderBy: 'created_at DESC');
+  }
+
+  /// Number of notifications that have not been read by the user.
+  Future<int> getUnreadNotificationsCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS total FROM notifications WHERE is_read = 0',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<int> markNotificationRead(int id) async {
+    final db = await database;
+    return db.update(
       'notifications',
-      orderBy: 'created_at DESC',
+      {'is_read': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> markNotificationUnread(int id) async {
+    final db = await database;
+
+    return db.update(
+      'notifications',
+      {'is_read': 0},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
   Future<int> getPendingPayablesCount() async {
     final db = await database;
 
-    final result = await db.rawQuery(
-      '''
+    final result = await db.rawQuery('''
     SELECT COUNT(*)
     FROM payables
     WHERE is_returned = 0
-    ''',
-    );
+    ''');
 
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -616,107 +1030,43 @@ class DatabaseHelper {
   Future<int> getPendingReceivablesCount() async {
     final db = await database;
 
-    final result = await db.rawQuery(
-      '''
+    final result = await db.rawQuery('''
     SELECT COUNT(*)
     FROM receivables
     WHERE is_received = 0
-    ''',
-    );
+    ''');
 
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
   //----------------------Notification Action--------------
-  Future<void> markPayablePaid(
-      int payableId,
-      ) async {
-    final db = await database;
 
-    final payable = await db.query(
-      'payables',
-      where: 'id=?',
-      whereArgs: [payableId],
-      limit: 1,
-    );
+  /// Notification action means settle the entire remaining payable balance.
+  Future<void> markPayablePaid(int payableId) async {
+    final remaining = await getPayableRemainingBalance(payableId);
+    if (remaining <= 0) return;
 
-    if (payable.isEmpty) return;
-
-    final item = payable.first;
-
-    if (item['is_returned'] == 1) return;
-
-    await insertExpense(
-      name: 'Payment to ${item['name']}',
-      amount: (item['amount'] as num).toDouble(),
-      date: DateTime.now(),
-      description:
-      item['description']?.toString(),
-    );
-
-    await db.update(
-      'payables',
-      {'is_returned': 1},
-      where: 'id=?',
-      whereArgs: [payableId],
-    );
-
-    await db.delete(
-      'notifications',
-      where:
-      'reference_id=? AND type=?',
-      whereArgs: [
-        payableId,
-        'payable',
-      ],
+    await recordPayablePayment(
+      payableId: payableId,
+      amount: remaining,
+      paymentDate: DateTime.now(),
+      note: 'Settled from notification',
     );
   }
 
-  Future<void> markReceivableReceived(
-      int receivableId,
-      ) async {
-    final db = await database;
+  /// Notification action means collect the entire remaining receivable balance.
+  Future<void> markReceivableReceived(int receivableId) async {
+    final remaining = await getReceivableRemainingBalance(receivableId);
+    if (remaining <= 0) return;
 
-    final receivable = await db.query(
-      'receivables',
-      where: 'id=?',
-      whereArgs: [receivableId],
-      limit: 1,
-    );
-
-    if (receivable.isEmpty) return;
-
-    final item = receivable.first;
-
-    if (item['is_received'] == 1) return;
-
-    await insertIncome(
-      category:
-      'Received from ${item['source']}',
-      amount: (item['amount'] as num)
-          .toDouble(),
-      date: DateTime.now(),
-      description:
-      item['description']?.toString(),
-    );
-
-    await db.update(
-      'receivables',
-      {'is_received': 1},
-      where: 'id=?',
-      whereArgs: [receivableId],
-    );
-
-    await db.delete(
-      'notifications',
-      where:
-      'reference_id=? AND type=?',
-      whereArgs: [
-        receivableId,
-        'receivable',
-      ],
+    await recordReceivablePayment(
+      receivableId: receivableId,
+      amount: remaining,
+      paymentDate: DateTime.now(),
+      note: 'Settled from notification',
     );
   }
+
   // -------------------- Close DB --------------------
 
   Future<void> closeDatabase() async {

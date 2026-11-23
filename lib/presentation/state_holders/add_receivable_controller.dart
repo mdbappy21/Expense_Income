@@ -1,21 +1,18 @@
 import 'package:expense_income/data/database_helper.dart';
+import 'package:expense_income/presentation/state_holders/notification_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AddReceivableController extends GetxController {
-  final GlobalKey<FormState> formKey =
-  GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   DateTime? expectedDate;
 
-  final TextEditingController sourceTEController =
-  TextEditingController();
+  final TextEditingController sourceTEController = TextEditingController();
 
-  final TextEditingController amountTEController =
-  TextEditingController();
+  final TextEditingController amountTEController = TextEditingController();
 
-  final TextEditingController descriptionTEController =
-  TextEditingController();
+  final TextEditingController descriptionTEController = TextEditingController();
 
   bool isLoading = false;
 
@@ -27,13 +24,10 @@ class AddReceivableController extends GetxController {
     super.onClose();
   }
 
-  Future<void> pickExpectedDate(
-      BuildContext context,
-      ) async {
+  Future<void> pickExpectedDate(BuildContext context) async {
     final DateTime now = DateTime.now();
 
-    final DateTime? pickedDate =
-    await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: expectedDate ?? now,
       currentDate: now,
@@ -54,10 +48,7 @@ class AddReceivableController extends GetxController {
     }
 
     if (expectedDate == null) {
-      Get.snackbar(
-        'Error',
-        'Please select expected receive date',
-      );
+      Get.snackbar('Error', 'Please select expected receive date');
       return;
     }
 
@@ -67,7 +58,7 @@ class AddReceivableController extends GetxController {
 
       final receivableId = await DatabaseHelper.instance.insertReceivable(
         source: sourceTEController.text.trim(),
-        amount: double.parse(amountTEController.text.trim(),),
+        amount: double.parse(amountTEController.text.trim()),
         expectedDate: expectedDate!,
         description: descriptionTEController.text.trim(),
       );
@@ -76,31 +67,39 @@ class AddReceivableController extends GetxController {
         referenceId: receivableId,
         title: 'Collection Reminder',
         body:
-        'Receive ${amountTEController.text} TK from ${sourceTEController.text}',
+            'Receive ${amountTEController.text} TK from ${sourceTEController.text}',
         type: 'receivable',
       );
+
+      // Scheduling is best-effort: the receivable itself remains saved even
+      // when notification permission is denied or Android rejects an alarm.
+      try {
+        await Get.find<NotificationController>().scheduleReceivableReminder(
+          receivableId: receivableId,
+          source: sourceTEController.text.trim(),
+          amount: double.parse(amountTEController.text.trim()),
+          expectedDate: expectedDate!,
+        );
+      } catch (_) {
+        Get.snackbar(
+          'Reminder not scheduled',
+          'The receivable was saved, but its phone reminder could not be scheduled.',
+        );
+      }
 
       isLoading = false;
       update();
 
-      await Future.delayed(
-        const Duration(milliseconds: 200),
-      );
+      await Future.delayed(const Duration(milliseconds: 200));
 
       Get.back(result: true);
 
-      Get.snackbar(
-        'Success',
-        'Receivable added successfully',
-      );
+      Get.snackbar('Success', 'Receivable added successfully');
     } catch (e) {
       isLoading = false;
       update();
 
-      Get.snackbar(
-        'Error',
-        e.toString(),
-      );
+      Get.snackbar('Error', e.toString());
     }
   }
 }

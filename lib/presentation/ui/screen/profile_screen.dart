@@ -1,6 +1,9 @@
+import 'package:expense_income/presentation/state_holders/notification_controller.dart';
 import 'package:expense_income/presentation/state_holders/profile_controller.dart';
+import 'package:expense_income/presentation/state_holders/theme_controller.dart';
 import 'package:expense_income/presentation/ui/screen/notification_list_screen.dart';
 import 'package:expense_income/presentation/ui/screen/notification_screen.dart';
+import 'package:expense_income/presentation/ui/screen/payment_management_screen.dart';
 import 'package:expense_income/presentation/ui/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,16 +22,11 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Stack(
             clipBehavior: Clip.none,
-            children: [
-              _buildTop(size),
-              _buildProfileCard(size),
-            ],
+            children: [_buildTop(size), _buildProfileCard(size, context)],
           ),
-
           SizedBox(height: size.height * .14),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: Divider(),
           ),
           Expanded(
@@ -38,37 +36,49 @@ class ProfileScreen extends StatelessWidget {
                 _buildTile(
                   icon: Icons.person_outline,
                   title: 'Edit Name',
-                  onTap: () {
-                    profileController.updateName();
-                  },
+                  onTap: profileController.updateName,
                 ),
-
                 _buildTile(
                   icon: Icons.photo_camera_outlined,
                   title: 'Change Profile Picture',
-                  onTap: () {
-                    profileController.pickProfileImage();
-                  },
+                  onTap: profileController.pickProfileImage,
                 ),
-
                 _buildTile(
                   icon: Icons.share_outlined,
                   title: 'Invite Friend',
+                  onTap: profileController.inviteFriend,
+                ),
+                const Divider(),
+                _buildTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: 'Payment Management',
                   onTap: () {
-                    profileController.inviteFriend();
+                    Get.to(() => const PaymentManagementScreen());
                   },
                 ),
-
-                const Divider(),
-
                 _buildTile(
                   icon: Icons.notifications_outlined,
                   title: 'Notifications',
+                  trailing: GetBuilder<NotificationController>(
+                      builder: (controller) {
+                        return CircleAvatar(
+                          radius: 12,
+                          backgroundColor: Colors.red,
+                          child: Text(
+                            controller.pendingCount > 99 ? '99+' : controller.pendingCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      }
+                  ),
                   onTap: () {
                     Get.to(() => const NotificationListScreen());
                   },
                 ),
-
                 _buildTile(
                   icon: Icons.notifications_active_outlined,
                   title: 'Notification Settings',
@@ -76,16 +86,23 @@ class ProfileScreen extends StatelessWidget {
                     Get.to(() => const NotificationScreen());
                   },
                 ),
-
                 _buildTile(
                   icon: Icons.dark_mode_outlined,
                   title: 'Theme',
-                  trailing: const Text('Soon'),
-                  onTap: () {},
+                  trailing: GetBuilder<ThemeController>(
+                    builder: (controller) {
+                      return Text(
+                        controller.themeModeLabel,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      );
+                    },
+                  ),
+                  onTap: () => _showThemeDialog(),
                 ),
-
                 const Divider(),
-
                 _buildTile(
                   icon: Icons.info_outline,
                   title: 'About App',
@@ -93,19 +110,16 @@ class ProfileScreen extends StatelessWidget {
                     _showAboutDialog(context);
                   },
                 ),
-
                 const SizedBox(height: 12),
-
                 Center(
                   child: Text(
                     'Version 1.0.0',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
               ],
             ),
@@ -140,7 +154,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard(Size size) {
+  Widget _buildProfileCard(Size size, BuildContext context) {
     return Positioned(
       left: 24,
       right: 24,
@@ -157,7 +171,6 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-
               Positioned(
                 right: 0,
                 bottom: 16,
@@ -168,10 +181,8 @@ class ProfileScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    onPressed: () {
-                      profileController.pickProfileImage();
-                    },
-                    icon: Icon(
+                    onPressed: profileController.pickProfileImage,
+                    icon: const Icon(
                       Icons.camera_alt,
                       color: Colors.white,
                       size: 18,
@@ -181,9 +192,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           GetBuilder<ProfileController>(
             builder: (controller) {
               return Text(
@@ -195,12 +204,12 @@ class ProfileScreen extends StatelessWidget {
               );
             },
           ),
-
           const SizedBox(height: 4),
-
           Text(
             'Expense & Income Tracker',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -222,6 +231,67 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showThemeDialog() {
+    Get.dialog(
+      GetBuilder<ThemeController>(
+        builder: (controller) {
+          return AlertDialog(
+            title: const Text('Choose Theme'),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 16,
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _themeOption(
+                  controller: controller,
+                  mode: ThemeMode.light,
+                  title: 'Light',
+                  icon: Icons.light_mode_outlined,
+                ),
+                _themeOption(
+                  controller: controller,
+                  mode: ThemeMode.dark,
+                  title: 'Dark',
+                  icon: Icons.dark_mode_outlined,
+                ),
+                _themeOption(
+                  controller: controller,
+                  mode: ThemeMode.system,
+                  title: 'System Default',
+                  icon: Icons.settings_brightness_outlined,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _themeOption({
+    required ThemeController controller,
+    required ThemeMode mode,
+    required String title,
+    required IconData icon,
+  }) {
+    final isSelected = controller.themeMode == mode;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: AppColors.themeColor)
+          : null,
+      onTap: () async {
+        await controller.changeThemeMode(mode);
+        Get.back();
+      },
+    );
+  }
+
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
@@ -230,7 +300,8 @@ class ProfileScreen extends StatelessWidget {
       applicationIcon: const Icon(Icons.account_balance_wallet),
       children: const [
         Text(
-          'Track income, expenses, payable and receivable money with detailed statistics and reports.',
+          'Track income, expenses, payable and receivable money '
+          'with detailed statistics and reports.',
         ),
       ],
     );

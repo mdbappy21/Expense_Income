@@ -10,56 +10,67 @@ class StatisticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // final colorScheme = Theme.of(context).colorScheme;
+
     return GetBuilder<StatisticsController>(
       init: StatisticsController(),
       builder: (controller) {
         return Scaffold(
-          backgroundColor: const Color(0xfffbfbfb),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: AppColors.themeColor,
             centerTitle: true,
-            title: Text('Statistics',
+            title: const Text(
+              'Statistics',
               style: TextStyle(
                 fontSize: 24,
-                fontWeight: .w500,
-                color: Colors.white
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
               ),
             ),
             actions: [
-              IconButton(onPressed: (){
-                controller.exportPdf;
-              }, icon: const Icon(Icons.file_download_outlined),color: Colors.white,),
-              const SizedBox(width: 16)
+              IconButton(
+                onPressed: () {
+                  controller.exportPdf;
+                },
+                icon: const Icon(Icons.file_download_outlined),
+                color: Colors.white,
+              ),
+              const SizedBox(width: 16),
             ],
           ),
           body: SafeArea(
             child: controller.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 16,
-              ),
-              child: Column(
-                children: [
-                  _buildPeriodTabs(controller),
-                  const SizedBox(height: 16),
-                  _buildDropdown(controller),
-                  const SizedBox(height: 16),
-                  _buildChart(controller),
-                  const SizedBox(height: 32),
-                  _buildTopSection(controller),
-                ],
-              ),
-            ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      children: [
+                        _buildPeriodTabs(context, controller),
+                        const SizedBox(height: 16),
+                        _buildDropdown(context, controller),
+                        const SizedBox(height: 16),
+                        _buildChart(context, controller),
+                        const SizedBox(height: 32),
+                        _buildTopSection(context, controller),
+                      ],
+                    ),
+                  ),
           ),
         );
       },
     );
   }
 
+  Widget _buildPeriodTabs(
+    BuildContext context,
+    StatisticsController controller,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
 
-  Widget _buildPeriodTabs(StatisticsController controller) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -73,14 +84,16 @@ class StatisticsScreen extends StatelessWidget {
               width: 72,
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xff2f7d73) : Colors.transparent,
+                color: isSelected ? AppColors.themeColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
               child: Text(
                 period,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                  color: isSelected
+                      ? Colors.white
+                      : colorScheme.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -91,23 +104,30 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDropdown(StatisticsController controller) {
+  Widget _buildDropdown(BuildContext context, StatisticsController controller) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade400),
+          border: Border.all(color: colorScheme.outline),
           borderRadius: BorderRadius.circular(8),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: controller.selectedType,
-            icon: const Icon(Icons.keyboard_arrow_down),
+            dropdownColor: colorScheme.surface,
+            style: TextStyle(color: colorScheme.onSurface),
+            icon: Icon(Icons.keyboard_arrow_down, color: colorScheme.onSurface),
             items: controller.types.map((type) {
               return DropdownMenuItem(
                 value: type,
-                child: Text(type),
+                child: Text(
+                  type,
+                  style: TextStyle(color: colorScheme.onSurface),
+                ),
               );
             }).toList(),
             onChanged: (value) {
@@ -121,19 +141,28 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChart(StatisticsController controller) {
+  Widget _buildChart(BuildContext context, StatisticsController controller) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (controller.chartSpots.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 260,
         child: Center(
-          child: Text('No chart data'),
+          child: Text(
+            'No chart data',
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
         ),
       );
     }
 
-    final highestY = controller.chartSpots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+    final highestY = controller.chartSpots
+        .map((e) => e.y)
+        .reduce((a, b) => a > b ? a : b);
 
-    final chartWidth = (controller.chartSpots.length * 80.0).clamp(350.0, 5000.0);
+    final chartWidth = (controller.chartSpots.length * 80.0)
+        .clamp(350.0, 5000.0)
+        .toDouble();
 
     final yPadding = highestY == 0 ? 10.0 : highestY * 0.25;
 
@@ -148,31 +177,18 @@ class StatisticsScreen extends StatelessWidget {
             child: LineChart(
               LineChartData(
                 minX: 0,
-                maxX: controller.chartSpots.isEmpty ? 1 : controller.chartSpots.last.x + 0.05,
+                maxX: controller.chartSpots.last.x + 0.05,
                 minY: 0,
                 maxY: highestY + yPadding,
-
-                gridData: const FlGridData(
-                  show: false,
-                ),
-
-                borderData: FlBorderData(
-                  show: false
-                ),
-
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                    ),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
-
                   rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                    ),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
-
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -181,15 +197,14 @@ class StatisticsScreen extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toInt()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Colors.grey,
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         );
                       },
                     ),
                   ),
-
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -198,20 +213,23 @@ class StatisticsScreen extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         final index = value.round();
 
-                        if (index < 0 || index >= controller.chartLabels.length) {
+                        if (index < 0 ||
+                            index >= controller.chartLabels.length) {
                           return const SizedBox.shrink();
                         }
 
                         if (value != index.toDouble()) {
                           return const SizedBox.shrink();
                         }
+
                         return SideTitleWidget(
                           meta: meta,
                           child: Text(
                             controller.chartLabels[index],
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                         );
@@ -219,16 +237,13 @@ class StatisticsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 lineBarsData: [
                   LineChartBarData(
                     spots: controller.chartSpots,
                     isCurved: false,
                     barWidth: 3,
                     color: Colors.blue,
-                    dotData: const FlDotData(
-                      show: true,
-                    ),
+                    dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
                       color: Colors.blue.withAlpha(32),
@@ -243,27 +258,36 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopSection(StatisticsController controller) {
+  Widget _buildTopSection(
+    BuildContext context,
+    StatisticsController controller,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         Row(
           children: [
             Text(
               controller.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
             ),
             const Spacer(),
-            const Icon(Icons.swap_vert),
+            Icon(Icons.swap_vert, color: colorScheme.onSurfaceVariant),
           ],
         ),
         const SizedBox(height: 14),
         if (controller.transactions.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('No data found'),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'No data found',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
           )
         else
           ListView.builder(
@@ -274,6 +298,7 @@ class StatisticsScreen extends StatelessWidget {
               final item = controller.transactions[index];
 
               return _buildTopItem(
+                context: context,
                 controller: controller,
                 title: item['title'] ?? '',
                 date: item['date'],
@@ -287,12 +312,14 @@ class StatisticsScreen extends StatelessWidget {
   }
 
   Widget _buildTopItem({
+    required BuildContext context,
     required StatisticsController controller,
     required String title,
     required String date,
     required double amount,
     required bool isSelected,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     final parsedDate = DateTime.parse(date);
 
     Color mainColor;
@@ -312,13 +339,13 @@ class StatisticsScreen extends StatelessWidget {
         sign = '-';
         break;
 
-      case 'Payable':
+      case 'Borrow':
         mainColor = Colors.orange;
         icon = Icons.payments_outlined;
         sign = '-';
         break;
 
-      case 'Receivable':
+      case 'Lend':
         mainColor = Colors.blue;
         icon = Icons.account_balance_wallet_outlined;
         sign = '+';
@@ -334,7 +361,7 @@ class StatisticsScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xff2f7d73) : Colors.white,
+        color: isSelected ? AppColors.themeColor : colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
@@ -347,8 +374,9 @@ class StatisticsScreen extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor:
-            isSelected ? Colors.white24 : mainColor.withAlpha(30),
+            backgroundColor: isSelected
+                ? Colors.white24
+                : mainColor.withAlpha(30),
             child: Icon(
               icon,
               color: isSelected ? Colors.white : mainColor,
@@ -364,7 +392,7 @@ class StatisticsScreen extends StatelessWidget {
                   title,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
+                    color: isSelected ? Colors.white : colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -373,7 +401,9 @@ class StatisticsScreen extends StatelessWidget {
                 Text(
                   DateFormat('dd MMM yyyy').format(parsedDate),
                   style: TextStyle(
-                    color: isSelected ? Colors.white70 : Colors.grey,
+                    color: isSelected
+                        ? Colors.white70
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

@@ -19,7 +19,7 @@ class StatisticsController extends GetxController {
 
   final List<String> periods = ['Day', 'Week', 'Month', 'Year'];
 
-  final List<String> types = ['Income', 'Expense', 'Payable', 'Receivable'];
+  final List<String> types = ['Income', 'Expense', 'Borrow', 'Lend'];
 
   String get title {
     if (selectedType == 'Income') {
@@ -30,11 +30,11 @@ class StatisticsController extends GetxController {
       return 'Top Spending';
     }
 
-    if (selectedType == 'Payable') {
-      return 'Top Payable';
+    if (selectedType == 'Borrow') {
+      return 'Top Borrow';
     }
 
-    return 'Top Receivable';
+    return 'Top Lend';
   }
 
   @override

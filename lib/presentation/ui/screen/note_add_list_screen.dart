@@ -6,10 +6,7 @@ import 'package:get/get.dart';
 class NoteAddListScreen extends StatelessWidget {
   final int? noteId;
 
-  const NoteAddListScreen({
-    super.key,
-    this.noteId,
-  });
+  const NoteAddListScreen({super.key, this.noteId});
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +18,7 @@ class NoteAddListScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: AppColors.themeColor,
-            title: Text(
-              noteId == null
-                  ? 'Add List'
-                  : 'Edit List',
-            ),
+            title: Text(noteId == null ? 'Add List' : 'Edit List'),
             centerTitle: true,
             actions: [
               IconButton(
@@ -34,12 +27,10 @@ class NoteAddListScreen extends StatelessWidget {
                     : () => controller.saveNote(noteId),
                 icon: controller.isLoading
                     ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
-                )
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.save),
               ),
               const SizedBox(width: 8),
@@ -52,14 +43,10 @@ class NoteAddListScreen extends StatelessWidget {
                 children: [
                   TextField(
                     controller: controller.titleController,
-                    style: const TextStyle(
-                      fontSize: 24,
-                    ),
+                    style: const TextStyle(fontSize: 24),
                     decoration: const InputDecoration(
                       hintText: 'Title',
-                      hintStyle: TextStyle(
-                        fontSize: 24,
-                      ),
+                      hintStyle: TextStyle(fontSize: 24),
                     ),
                   ),
 
@@ -69,15 +56,12 @@ class NoteAddListScreen extends StatelessWidget {
                     child: ListView.builder(
                       itemCount: controller.items.length,
                       itemBuilder: (context, index) {
-                        return _buildListItem(
-                          controller,
-                          index,
-                        );
+                        return _buildListItem(context, controller, index);
                       },
                     ),
                   ),
 
-                  _buildAddItemButton(controller),
+                  _buildAddItemButton(context, controller),
                 ],
               ),
             ),
@@ -88,27 +72,21 @@ class NoteAddListScreen extends StatelessWidget {
   }
 
   Widget _buildListItem(
-      NoteListController controller,
-      int index,
-      ) {
+    BuildContext context,
+    NoteListController controller,
+    int index,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Checkbox(
             value: controller.checked[index],
-            activeColor: Colors.grey,
-            checkColor: Colors.black,
-            side: const BorderSide(
-              color: Colors.black,
-            ),
+            activeColor: Theme.of(context).colorScheme.primary,
+            checkColor: Theme.of(context).colorScheme.onPrimary,
+            side: BorderSide(color: Theme.of(context).colorScheme.outline),
             onChanged: (value) {
-              controller.toggleItem(
-                index,
-                value ?? false,
-              );
+              controller.toggleItem(index, value ?? false);
             },
           ),
 
@@ -116,14 +94,11 @@ class NoteAddListScreen extends StatelessWidget {
             child: TextField(
               controller: controller.items[index],
               style: TextStyle(
-                decoration:
-                controller.checked[index]
+                decoration: controller.checked[index]
                     ? TextDecoration.lineThrough
                     : TextDecoration.none,
               ),
-              decoration: const InputDecoration(
-                hintText: 'List item',
-              ),
+              decoration: const InputDecoration(hintText: 'List item'),
             ),
           ),
 
@@ -131,9 +106,7 @@ class NoteAddListScreen extends StatelessWidget {
             onPressed: () {
               controller.removeItem(index);
             },
-            icon: const Icon(
-              Icons.close,
-            ),
+            icon: const Icon(Icons.close),
           ),
         ],
       ),
@@ -141,24 +114,20 @@ class NoteAddListScreen extends StatelessWidget {
   }
 
   Widget _buildAddItemButton(
-      NoteListController controller,
-      ) {
+    BuildContext context,
+    NoteListController controller,
+  ) {
     return InkWell(
       onTap: controller.addItem,
       child: Container(
-        color: Colors.grey,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         padding: const EdgeInsets.all(8),
         child: const Row(
           children: [
             SizedBox(width: 12),
             Icon(Icons.add),
             SizedBox(width: 20),
-            Text(
-              'List item',
-              style: TextStyle(
-                fontSize: 16,
-              ),
-            ),
+            Text('List item', style: TextStyle(fontSize: 16)),
           ],
         ),
       ),

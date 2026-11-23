@@ -39,12 +39,7 @@ class AddIncomeScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: size.height * .28,
-      padding: const EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 90,
-      ),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 90),
       decoration: const BoxDecoration(
         color: AppColors.themeColor,
         borderRadius: BorderRadius.only(
@@ -63,10 +58,7 @@ class AddIncomeScreen extends StatelessWidget {
               'Add Income',
               textAlign: TextAlign.center,
               maxLines: 2,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(width: 48),
@@ -76,21 +68,18 @@ class AddIncomeScreen extends StatelessWidget {
   }
 
   Widget _buildAddIncome(
-      Size size,
-      BuildContext context,
-      AddIncomeController controller,
-      ) {
+    Size size,
+    BuildContext context,
+    AddIncomeController controller,
+  ) {
     return Positioned(
       left: 24,
       right: 24,
       top: size.height * .18,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 24,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Form(
@@ -145,8 +134,8 @@ class AddIncomeScreen extends StatelessWidget {
                     controller.selectedDate == null
                         ? 'Select Date'
                         : DateFormat(
-                      'dd MMM yyyy',
-                    ).format(controller.selectedDate!),
+                            'dd MMM yyyy',
+                          ).format(controller.selectedDate!),
                   ),
                 ),
               ),
@@ -173,12 +162,10 @@ class AddIncomeScreen extends StatelessWidget {
                       : controller.saveIncome,
                   child: controller.isLoading
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Add'),
                 ),
               ),
